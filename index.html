@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H. Nahid™ — Portfolio</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Lora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- GSAP & ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <!-- Lenis Smooth Scroll -->
+    <link rel="stylesheet" href="https://unpkg.com/lenis@1.1.20/dist/lenis.css">
+    <script src="https://unpkg.com/lenis@1.1.20/dist/lenis.min.js"></script>
+</head>
+<body>
+
+    <!-- Responsive Navbar -->
+    <header class="navbar-wrapper">
+        <nav class="navbar" id="navbar">
+            <div class="nav-container">
+                <!-- Left Brand -->
+                <a href="#" class="nav-brand">H. Nahid™</a>
+
+                <!-- Mobile Menu Button -->
+                <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Navigation">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+
+                <!-- Right Nav Items -->
+                <div class="nav-menu" id="navMenu">
+                    <div class="status-badge">
+                        <span class="star-icon">✺</span> Available for work
+                    </div>
+                    <ul class="nav-links">
+                        <li><a href="#about" class="nav-link">About</a></li>
+                        <li><a href="#cases" class="nav-link">Cases</a></li>
+                        <li><a href="#contact" class="nav-link">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-container">
+                <div class="hero-left">
+                    <h1 class="hero-statement">
+                        I design systems<br>
+                        that scale —<br>
+                        from 0 to enterprise.
+                    </h1>
+                </div>
+                <div class="hero-right">
+                    <div class="hero-profile">
+                        <div class="profile-img-container">
+                            <span class="profile-arrow" aria-hidden="true">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 19V17H15.6L4 5.4L5.4 4L17 15.6V9H19V19H9Z" fill="#01C45E"/>
+                                </svg>
+                            </span>
+                            <img src="resources/profile.png" alt="H. Nahid" class="profile-img">
+                        </div>
+                        <div class="profile-details">
+                            <span class="role-level">Senior</span>
+                            <span class="role-title">Product Designer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hero Sub Section (3 Columns under border area) -->
+        <section class="hero-sub-section">
+            <div class="hero-sub-container">
+                <!-- Col 1: Right arrow + Start a project -->
+                <div class="sub-col col-start">
+                    <a href="#contact" class="btn-action btn-start-project">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <mask id="mask0_2_297" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+                                    <rect width="20" height="20" fill="#D9D9D9"/>
+                                </mask>
+                                <g mask="url(#mask0_2_297)">
+                                    <path d="M13.4791 10.8333H3.33325V9.16665H13.4791L8.81242 4.49998L9.99992 3.33331L16.6666 9.99998L9.99992 16.6666L8.81242 15.5L13.4791 10.8333Z" fill="currentColor"/>
+                                </g>
+                            </svg>
+                        </span>
+                        <span class="btn-text">Start a project</span>
+                    </a>
+                </div>
+
+                <!-- Col 2: Down arrow + Go to Work -->
+                <div class="sub-col col-work">
+                    <a href="#cases" class="btn-action btn-go-work">
+                        <span class="btn-icon" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <mask id="mask0_2_302" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+                                    <rect width="20" height="20" fill="#D9D9D9"/>
+                                </mask>
+                                <g mask="url(#mask0_2_302)">
+                                    <path d="M9.16658 3.33331V13.4791L4.49992 8.81248L3.33325 9.99998L9.99992 16.6666L16.6666 9.99998L15.4999 8.81248L10.8333 13.4791V3.33331H9.16658Z" fill="currentColor"/>
+                                </g>
+                            </svg>
+                        </span>
+                        <span class="btn-text">Go to Work</span>
+                    </a>
+                </div>
+
+                <!-- Col 3: Square list items -->
+                <div class="sub-col col-stats">
+                    <ul class="hero-stats-list">
+                        <li>10 Years of Experiences</li>
+                        <li>200+ Clients</li>
+                        <li>100+ projects</li>
+                    </ul>
+                </div>
+
+                <!-- Col 4 (Spacer matching hero-profile 320px width for equal spacing distribution) -->
+                <div class="sub-col col-profile-space" aria-hidden="true"></div>
+            </div>
+        </section>
+
+        <!-- Horizontal Scroll Text Marquee Section -->
+        <section class="marquee-section" aria-label="Habibullah Nahid Ticker">
+            <div class="marquee-track-wrapper">
+                <div class="marquee-track" id="marqueeTrack">
+                    <div class="marquee-content" id="marqueeContent">
+                        <span class="marquee-item"><span class="marquee-star">✺</span> Habibullah Nahid</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section (Pure Black with Dynamic Scroll Bend Effect) -->
+        <section id="about" class="about-section">
+            <div class="about-bend-wrapper about-bend-top">
+                <svg class="about-bend-svg" viewBox="0 0 1440 180" fill="none" preserveAspectRatio="none">
+                    <path id="aboutBendTopPath" d="M 0,180 Q 720,180 1440,180 L 1440,180 L 0,180 Z" fill="#000000"></path>
+                </svg>
+            </div>
+
+            <div class="content-container about-container">
+                <div class="about-header">
+                    <span class="about-eyebrow">✺ About</span>
+                </div>
+
+                <div class="about-content">
+                    <p class="about-headline">
+                        I am a Human Interface Designer and Developer, driven by a passion for crafting pixel-perfect, minimal, and user-friendly interfaces.
+                    </p>
+                    <p class="about-bio">
+                        My diverse journey began in Dhaka, where I mastered English, Bangla, and excelled in math and sciences. With a Post Grad in Electrical and Electronic Engineering, I transitioned to design in 2014. My unique blend of technical expertise and design skills enables me to create seamless digital experiences. I specialize in human-centered design, UX problem solving, and UI design, leveraging front-end technologies. Collaborating with professionals, I've crafted impactful digital solutions.
+                    </p>
+                </div>
+
+                <!-- Action Button Group (Lime Pill + Arrow Circle matching reference) -->
+                <div class="about-action-group">
+                    <a href="#contact" class="about-pill-btn">
+                        <span>About Me</span>
+                    </a>
+                    <a href="#contact" class="about-arrow-btn" aria-label="About Me">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Bottom Meta Row (Scroll to Explore + Tag matching reference) -->
+                <div class="about-footer-row">
+                    <div class="about-scroll-hint">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        <span>Scroll to Explore</span>
+                    </div>
+                    <div class="about-footer-tag">
+                        <span>My Journey</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cases" class="content-section">
+            <div class="content-container">
+                <h2>Cases</h2>
+                <div class="cards-grid">
+                    <div class="project-card">
+                        <div class="card-image img-1"></div>
+                        <h3>Fintech Dashboard</h3>
+                        <p>Web App • 2026</p>
+                    </div>
+                    <div class="project-card">
+                        <div class="card-image img-2"></div>
+                        <h3>AI Workspace Interface</h3>
+                        <p>Design System • 2026</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="content-section">
+            <div class="content-container">
+                <h2>Contact</h2>
+                <p class="section-text">Have a project in mind? Let's create something extraordinary together.</p>
+                <a href="mailto:contact@nahid.design" class="contact-email">contact@nahid.design →</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="content-container">
+            <p>© 2026 H. Nahid™. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
