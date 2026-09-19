@@ -6,29 +6,56 @@ A lightweight, modern, and production-ready HTML5, CSS3, and Vanilla JavaScript 
 
 ```
 .
-├── index.html   # Main HTML document structure & semantic layout
-├── styles.css   # Modern CSS design system, CSS variables, dark/light themes
-├── app.js       # Core JavaScript logic, theme switcher, interactive state
-└── README.md    # Project documentation
+├── index.html        # Main HTML document structure & semantic layout
+├── styles.css        # Modern CSS design system, CSS variables, dark/light themes
+├── app.js            # Core JavaScript logic, animations, and interactive state
+├── vite.config.js    # Vite dev server and build configuration
+├── package.json      # NPM dependencies and development scripts
+├── .prettierrc       # Code formatting rules
+├── .gitignore        # Git ignore rules
+└── README.md         # Project documentation
 ```
 
 ## ✨ Features
 
-- **Zero Dependencies**: Pure HTML5, Vanilla CSS, and modern ES6 JavaScript.
+- **Modern Dev Tooling**: Powered by Vite for lightning-fast hot module reloading (HMR) and optimized production builds.
 - **Dark/Light Theme**: Built-in theme switcher with `localStorage` persistence.
 - **Modern Styling**: Responsive design, custom CSS properties, glassmorphism UI cards, smooth transitions.
-- **Interactive Components**: Counter state widget, toast notification system.
-- **Responsive**: Mobile-first design layout with CSS Flexbox & Grid.
+- **Smooth Animations**: GSAP, ScrollTrigger, and Lenis smooth scrolling integration.
+- **Code Quality**: Prettier configuration for consistent code styling.
 
-## 🚀 How to Run
+## 🚀 Getting Started
 
-You can open `index.html` directly in any web browser, or use a local dev server such as `live-server`, `http-server`, or Vite.
+### 1. Install Dependencies
 
-Example with python:
 ```bash
-python3 -m http.server 8000
+npm install
 ```
-Then open `http://localhost:8000` in your browser.
 
+### 2. Start Development Server
 
-https://azizkhaldi.com/
+```bash
+npm run dev
+```
+
+Starts the Vite local development server (defaults to `http://localhost:3000`).
+
+### 3. Build for Production
+
+```bash
+npm run build
+```
+
+Creates an optimized, minified production build in the `dist/` directory.
+
+### 4. Preview Production Build
+
+```bash
+npm run preview
+```
+
+### 5. Format Code
+
+```bash
+npm run format
+```
