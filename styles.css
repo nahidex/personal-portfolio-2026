@@ -527,14 +527,20 @@ ul {
 }
 
 .works-reveal-card {
-  width: 90vw;
-  margin: 0 auto;
+  /* Real layout width stays 100% at all times so the pinned horizontal
+     projects section inside it always measures full viewport width;
+     the "inset card" look is achieved purely visually via clip-path below.
+     The inset/radius are driven by custom properties (rather than a single
+     shorthand clip-path value) so GSAP can tween them smoothly frame-by-frame. */
+  --reveal-inset: 5vw;
+  --reveal-radius: 36px;
+  position: relative;
+  width: 100%;
+  margin: 0;
   background-color: #ffffff;
-  border-top-left-radius: 36px;
-  border-top-right-radius: 36px;
-  overflow: visible;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
   box-sizing: border-box;
+  clip-path: inset(0 var(--reveal-inset) 0 var(--reveal-inset) round var(--reveal-radius));
 }
 
 .works-reveal-card .pin-spacer {
@@ -652,10 +658,11 @@ ul {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  gap: clamp(2.5rem, 4vw, 5rem);
   will-change: transform;
   align-items: flex-start;
   padding-left: 0;
-  padding-right: clamp(4rem, 8vw, 12rem);
+  padding-right: clamp(6.5rem, 9.5vw, 11rem);
 }
 
 .project-slide {
@@ -663,7 +670,6 @@ ul {
   position: relative;
   /* Width matches left gutter + cards row width matching Image 2 */
   width: calc(clamp(6.5rem, 9.5vw, 11rem) + clamp(880px, 72vw, 1360px));
-  margin-right: clamp(2.5rem, 4vw, 5rem);
   box-sizing: border-box;
 }
 
@@ -799,19 +805,293 @@ ul {
 }
 
 .project-media-card {
+  display: block; /* it's an <a>, which is inline by default */
   height: clamp(470px, 59vh, 620px);
-  background-color: #d9d9d9;
-  border-radius: 4px; /* Clean sharp corners matching Image 2 */
-  transition:
-    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.35s ease;
+  background-color: transparent;
+  cursor: none; /* the custom "View" badge replaces the cursor */
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 
-.project-media-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.05);
+.project-media-card img,
+.project-media-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gentle zoom-in on hover, cropped cleanly by the card's overflow: hidden */
+.project-media-card:hover img,
+.project-media-card:hover video {
+  transform: scale(1.06);
+}
+
+/* "More Projects" action below the horizontal projects showcase */
+.more-projects-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 0 4rem;
+}
+
+/* Single media card spanning the full row for projects with only one asset */
+.project-media-card.card-full {
+  grid-column: 1 / -1;
+}
+
+.project-media-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  padding: 0.85rem 2.25rem;
+  background-color: #ffffff;
+  color: #000000;
+  mix-blend-mode: difference; /* Inverts against whatever it sits over, like a photo negative */
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 0; /* Sharp corners */
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.15s ease-out; /* Short lag so the badge chases the cursor */
+  will-change: transform;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.project-media-card:hover .project-media-view {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Project Lightbox — expands from a thin horizontal line into a full
+   case-study page. The hero media shrinks toward the top as the visitor
+   scrolls into the dummy content below, and grows back when scrolling up.
+   The project title stays fixed at the top in an inverted (blend-mode)
+   treatment so it reads over both the media and the content beneath it.
+   ========================================================================== */
+.project-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.project-lightbox.is-active {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.lightbox-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #0a0a0a;
+  /* Reveal via clip-path mask, not transform scale, so the media inside
+     never gets stretched/distorted while opening. Driven by a custom
+     property because GSAP won't tween the clip-path shorthand directly. */
+  --lightbox-inset: 49.7%;
+  clip-path: inset(var(--lightbox-inset) 0 var(--lightbox-inset) 0);
+  will-change: clip-path;
+}
+
+.lightbox-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lightbox-hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #0a0a0a;
+  /* Retracts toward the top via clip-path (never resizes/distorts the media) */
+  --hero-clip: 0%;
+  clip-path: inset(0 0 var(--hero-clip) 0);
+  will-change: clip-path;
+}
+
+.lightbox-media {
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.lightbox-media img,
+.lightbox-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lightbox-content {
+  position: relative;
+  z-index: 1;
+  background-color: #0a0a0a;
+  padding: 6rem 4rem 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.lightbox-content-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.lightbox-content-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.lightbox-content-media {
+  width: 100%;
+  height: clamp(280px, 60vh, 640px);
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.lightbox-content-media.placeholder-a {
+  background-image: linear-gradient(135deg, #2c2c2c 0%, #0a0a0a 100%);
+}
+
+.lightbox-content-media.placeholder-b {
+  background-image: linear-gradient(135deg, #1d1d1d 0%, #3a3a3a 100%);
+}
+
+.lightbox-content-media.placeholder-c {
+  background-image: linear-gradient(135deg, #262626 0%, #050505 100%);
+}
+
+.lightbox-title-bar {
+  /* Sits in normal flow right after the hero, close to the top of that
+     section, then sticks to the top of the scroll container once scrolled
+     past — never overlays the photo itself. margin-top/top keep a small,
+     consistent gap from the true edge in both the resting and stuck state. */
+  position: sticky;
+  top: 1.5rem;
+  margin-top: 1.5rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 6rem 1rem;
+  text-align: center;
+  color: #ffffff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+.lightbox-details-client {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.lightbox-details-heading {
+  max-width: 900px;
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.lightbox-details-year {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 2.25rem;
+  right: 2.5rem;
+  z-index: 6;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.lightbox-close:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.project-lightbox.is-active .lightbox-close {
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .lightbox-title-bar {
+    padding: 1.5rem 4.5rem;
+  }
+
+  .lightbox-content {
+    padding: 4rem 1.5rem 6rem;
+    gap: 3.5rem;
+  }
+
+  .lightbox-close {
+    top: auto;
+    bottom: 2rem;
+    right: 50%;
+    transform: translateX(50%);
+  }
 }
 
 /* ==========================================================================
@@ -828,7 +1108,7 @@ ul {
 }
 
 .testimonials-header-container {
-  max-width: 1080px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 4rem 2rem;
   box-sizing: border-box;
@@ -878,7 +1158,7 @@ ul {
 }
 
 .testimonials-container {
-  max-width: 1080px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 0 2rem;
   box-sizing: border-box;
@@ -901,7 +1181,6 @@ ul {
   width: 100%;
   background-color: #141414;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
   padding: 1.25rem 2rem 1.75rem;
   box-shadow: none;
   box-sizing: border-box;
@@ -910,12 +1189,11 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  cursor: pointer;
-  transition: border-color 0.25s ease;
+  transition: border-color 0.3s ease;
 }
 
 .testimonial-card:hover {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .testimonial-card-header {
@@ -961,7 +1239,6 @@ ul {
 
 .testimonial-card-body {
   background-color: #242424;
-  border-radius: 8px;
   padding: 1.75rem 2.25rem;
   display: flex;
   align-items: center;
@@ -1041,7 +1318,6 @@ ul {
     top: auto;
     left: auto;
     padding: 1.5rem 1.25rem;
-    border-radius: 12px;
   }
 
   .testimonial-card-header {
@@ -1070,7 +1346,6 @@ ul {
 .content-section {
   padding: 8rem 0;
 }
-
 
 .content-section.light-bg {
   background-color: #f2f2f2;
@@ -1328,10 +1603,208 @@ html.lenis body {
 }
 
 .site-footer {
-  padding: 3rem 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 15px;
-  color: #666;
+  position: relative;
+  background-color: #0a0a0a;
+  color: #ffffff;
+  padding: 4rem 3rem 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (min-width: 901px) {
+  .site-footer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+}
+
+/* Bend wrapper: starts as a downward-sagging parabola (page background
+   peeking into the dark footer), then straightens flat as you scroll in. */
+.footer-bend-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.footer-bend-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.footer-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  padding-bottom: 3rem;
+}
+
+.footer-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3.5rem;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.footer-col-title {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.25rem;
+}
+
+.footer-link,
+.footer-static-text {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.footer-link:hover {
+  color: #ffffff;
+}
+
+.footer-contact-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.footer-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 9999px;
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 13px;
+  color: #ffffff;
+  text-decoration: none;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.footer-pill:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.footer-giant-name {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: clamp(7rem, 26vw, 20rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  text-align: center;
+  color: #ffffff;
+  white-space: nowrap;
+  margin-top: auto;
+  padding-top: 4rem;
+}
+
+.footer-letter {
+  display: inline-block;
+  will-change: transform, filter, opacity;
+}
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.footer-to-top {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: transparent;
+  color: #ffffff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.footer-to-top:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 700px) {
+  .site-footer {
+    padding: 3rem 1.5rem 1.5rem;
+  }
+
+  .footer-columns {
+    gap: 2rem;
+  }
+
+  .footer-giant-name {
+    font-size: clamp(3rem, 18vw, 6rem);
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* ==========================================================================
@@ -1525,38 +1998,12 @@ html.lenis body {
    ========================================================================== */
 .services-section {
   position: relative;
-  background-color: #ededed;
+  background-color: #000000; /* Starts black to match the tail of the testimonials section; GSAP scrubs this to white on scroll-in */
   color: #111111;
   width: 100%;
-  padding: 8rem 0 10rem;
+  padding: 8rem 0 3rem;
   overflow: hidden;
   box-sizing: border-box;
-}
-
-.services-wave-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.services-neon-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.services-neon-path {
-  stroke: #cbf63e;
-  stroke-width: 32;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 6px 20px rgba(203, 246, 62, 0.5));
-  will-change: stroke-dashoffset;
 }
 
 .services-container {
@@ -1573,7 +2020,7 @@ html.lenis body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 4.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .services-statement {
@@ -1593,43 +2040,85 @@ html.lenis body {
   max-width: 920px;
 }
 
-/* 4-Column Connected Service Cards Grid (Matching Exact Box Sizes from azizkhaldi.com) */
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 0px;
+/* Horizontal Scroll Pin Wrapper for the Service Cards (GSAP Pin + Track, same technique as the Projects section) */
+.services-cards-section {
+  position: relative;
+  width: 100%;
   overflow: hidden;
+}
+
+.services-horizontal-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 7rem 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Service Cards Row (flex, fixed-width cards so the row overflows and can scroll horizontally) */
+.services-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  padding-left: clamp(2rem, 5vw, 6rem);
+  padding-right: clamp(2rem, 5vw, 6rem);
+  will-change: transform;
+  border-radius: 0px;
   background-color: transparent;
   position: relative;
   z-index: 2;
 }
 
 .service-card {
+  flex: 1 1 0%;
+  min-width: 260px;
   padding: 2.75rem 2.25rem 3rem 2.25rem;
   min-height: 480px;
   height: 500px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-right: 1px solid rgba(0, 0, 0, 0.14);
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  border-left: 1px solid rgba(0, 0, 0, 0.14);
   background-color: transparent;
   position: relative;
   z-index: 2;
   box-sizing: border-box;
+  overflow: hidden;
   transition:
     background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.service-card:last-child {
-  border-right: none;
-}
-
 .service-card:hover {
   background-color: #ffffff;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05);
+}
+
+.service-card:last-child {
+  border-right: 1px solid rgba(0, 0, 0, 0.14);
+}
+
+/* Subtle lime corner glow revealed on hover, matching azizkhaldi.com's card interaction */
+.service-card-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle at top right, rgba(203, 246, 62, 0.35), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.service-card:hover .service-card-glow {
+  opacity: 1;
 }
 
 .service-card-top {
@@ -1640,23 +2129,36 @@ html.lenis body {
 }
 
 .service-icon-circle {
-  width: 58px;
-  height: 58px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background-color: #cbf63e;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: rgba(17, 17, 17, 0.55);
   box-shadow: 0 4px 14px rgba(203, 246, 62, 0.35);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.3s ease;
+}
+
+/* Overrides the SVGs' inline width/height so icons look bigger without resizing the circle itself */
+.service-icon-circle svg {
+  width: 34px;
+  height: 34px;
 }
 
 .service-card:hover .service-icon-circle {
-  transform: scale(1.06);
+  transform: scale(1.1);
+  color: #111111;
 }
 
 .service-number {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
   font-family:
     "Plus Jakarta Sans",
     -apple-system,
@@ -1664,8 +2166,8 @@ html.lenis body {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 300;
   color: #888888;
   letter-spacing: -0.01em;
 }
@@ -1682,11 +2184,11 @@ html.lenis body {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: clamp(1.4rem, 1.6vw, 1.75rem);
-  font-weight: 600;
+  font-size: clamp(1.55rem, 1.9vw, 2rem);
+  font-weight: 700;
   color: #000000;
   letter-spacing: -0.025em;
-  line-height: 1.22;
+  line-height: 1.2;
   margin: 0;
 }
 
@@ -1709,7 +2211,7 @@ html.lenis body {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 14.5px;
+  font-size: 18px;
   line-height: 1.65;
   color: rgba(0, 0, 0, 0.65);
   margin: 0;
@@ -1723,23 +2225,36 @@ html.lenis body {
     padding: 6rem 0 7.5rem;
   }
 
-  .services-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .service-card {
     min-height: 440px;
     height: auto;
     padding: 2.25rem 1.75rem 2.5rem;
   }
+}
 
-  .service-card:nth-child(2) {
-    border-right: none;
+/* Below the JS horizontal-scroll pin's breakpoint: fall back to a plain stacked column */
+@media (max-width: 900px) {
+  .services-horizontal-wrapper {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
   }
 
-  .service-card:nth-child(1),
-  .service-card:nth-child(2) {
+  .services-grid {
+    flex-direction: column;
+    padding-left: clamp(1.5rem, 5vw, 2.5rem);
+    padding-right: clamp(1.5rem, 5vw, 2.5rem);
+    transform: none !important;
+  }
+
+  .service-card {
+    width: 100%;
+    border-right: 1px solid rgba(0, 0, 0, 0.14);
     border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  }
+
+  .service-card:last-child {
+    border-bottom: none;
   }
 }
 
@@ -1752,19 +2267,9 @@ html.lenis body {
     font-size: 1.75rem;
   }
 
-  .services-grid {
-    grid-template-columns: 1fr;
-  }
-
   .service-card {
     min-height: auto;
     height: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.14);
     padding: 2rem 1.5rem 2.25rem;
-  }
-
-  .service-card:last-child {
-    border-bottom: none;
   }
 }

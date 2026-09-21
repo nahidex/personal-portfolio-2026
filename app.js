@@ -14,6 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initProjectsHorizontalScroll();
   initTestimonialsScroll();
   initServicesScroll();
+  initServicesHorizontalScroll();
+  initProjectMediaCursor();
+  initProjectLightbox();
+  initFooter();
 });
 
 /* ==========================================================================
@@ -241,6 +245,9 @@ function initSmoothScroll() {
     smoothWheel: true,
     wheelMultiplier: 1.0,
     touchMultiplier: 1.6,
+    // Let the lightbox's own scroll container handle its wheel/touch input
+    // natively instead of Lenis hijacking it for the main page.
+    prevent: (node) => !!node.closest?.("#lightboxScroll"),
   });
 
   // Synchronize Lenis with GSAP ScrollTrigger
@@ -461,23 +468,29 @@ function initWorksReveal() {
 
   const mm = gsap.matchMedia();
 
+  // NOTE: The card's actual layout width is always 100% (see CSS) — only its
+  // painted appearance is inset via clip-path. This keeps the real width of
+  // descendants (like the pinned horizontal projects section) full-viewport
+  // at all times, so GSAP's pin measurements never get frozen at a stale,
+  // narrower size while this reveal animation is still in progress.
+  // Tweening the two custom properties (instead of the clip-path shorthand
+  // directly) is what makes GSAP interpolate this smoothly instead of
+  // snapping straight to the end value.
   mm.add("(min-width: 901px)", () => {
-    // Initial state: centered rounded card on black background
+    // Initial state: centered rounded card look on black background
     gsap.set(card, {
-      width: "90vw",
-      borderTopLeftRadius: 36,
-      borderTopRightRadius: 36,
+      "--reveal-inset": "5vw",
+      "--reveal-radius": "36px",
     });
 
     const revealTween = gsap.to(card, {
-      width: "100%",
-      borderTopLeftRadius: 0,
-      borderTopRightRadius: 0,
+      "--reveal-inset": "0vw",
+      "--reveal-radius": "0px",
       ease: "none",
       scrollTrigger: {
         trigger: wrapper,
         start: "top 85%", // Starts expanding as wrapper enters viewport
-        end: "top 25%", // Fully expanded to 100% width and flat corners well before pinning
+        end: "top 25%", // Fully expanded to 100% width and flat corners before projects section
         scrub: true,
         invalidateOnRefresh: true,
       },
@@ -491,20 +504,18 @@ function initWorksReveal() {
 
   mm.add("(max-width: 900px)", () => {
     gsap.set(card, {
-      width: "94vw",
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      "--reveal-inset": "3vw",
+      "--reveal-radius": "24px",
     });
 
     const revealTweenMobile = gsap.to(card, {
-      width: "100%",
-      borderTopLeftRadius: 0,
-      borderTopRightRadius: 0,
+      "--reveal-inset": "0vw",
+      "--reveal-radius": "0px",
       ease: "none",
       scrollTrigger: {
         trigger: wrapper,
         start: "top 85%",
-        end: "top 20%",
+        end: "top 25%",
         scrub: true,
         invalidateOnRefresh: true,
       },
@@ -543,22 +554,229 @@ function initProjectsHorizontalScroll() {
       ease: "none",
       scrollTrigger: {
         trigger: section,
-        start: "top top", // Pins cleanly when section reaches the very top of the viewport
+        start: "top top",
         end: () => `+=${getScrollAmount()}`,
         pin: true,
         pinSpacing: true,
         pinType: "fixed",
-        anticipatePin: 1,
         scrub: 1,
         invalidateOnRefresh: true,
-        fastScrollEnd: true,
       },
     });
+
 
     return () => {
       horizontalTween.kill();
       gsap.set(track, { clearProps: "all" });
     };
+  });
+}
+
+/* ==========================================================================
+   Project Media "View" Badge — follows the cursor within each card
+   ========================================================================== */
+function initProjectMediaCursor() {
+  const cards = document.querySelectorAll(".project-media-card");
+
+  cards.forEach((card) => {
+    const badge = card.querySelector(".project-media-view");
+    if (!badge) return;
+
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      badge.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    });
+  });
+}
+
+/* ==========================================================================
+   Project Lightbox — expands from a horizontal line into a full case-study
+   page. The hero media shrinks toward the top as the visitor scrolls down
+   into the (dummy) content, and grows back to full size on scrolling up.
+   Closing collapses the whole panel back down into a line and hides it.
+   ========================================================================== */
+function initProjectLightbox() {
+  const lightbox = document.getElementById("projectLightbox");
+  const panel = document.getElementById("lightboxPanel");
+  const scrollEl = document.getElementById("lightboxScroll");
+  const hero = document.getElementById("lightboxHero");
+  const mediaSlot = document.getElementById("lightboxMedia");
+  const titleBar = document.getElementById("lightboxTitleBar");
+  const closeBtn = document.getElementById("lightboxClose");
+  const clientEl = document.getElementById("lightboxClient");
+  const headingEl = document.getElementById("lightboxHeading");
+  const yearEl = document.getElementById("lightboxYear");
+  const cards = document.querySelectorAll(".project-media-card");
+
+  if (!lightbox || !panel || !scrollEl || !hero || !mediaSlot || !titleBar || cards.length === 0) return;
+  if (typeof gsap === "undefined") return;
+
+  let activeTween = null;
+  let retractTween = null;
+  let wheelTween = null;
+  let wheelTarget = 0;
+  let isOpen = false;
+  let titleObserver = null;
+  let titleRevealed = false;
+  let userScrolled = false;
+  // Distance (in scroll px) over which the hero fully retracts toward the top —
+  // matches the hero's own height so the title bar lands flush at the top
+  // (scrollTop 0) the instant the retract finishes, not partway down.
+  const shrinkRange = () => hero.offsetHeight;
+
+  // The title bar sits in normal flow right after the hero; animate it in the
+  // instant it scrolls into view, then let it stick to the top from there on.
+  function armTitleReveal() {
+    titleObserver && titleObserver.disconnect();
+    titleRevealed = false;
+    // Starts slightly below rest position, then eases upward into place.
+    gsap.set(titleBar, { opacity: 0, yPercent: 20 });
+    titleObserver = new IntersectionObserver(
+      (entries) => {
+        if (titleRevealed || !entries[0].isIntersecting) return;
+        titleRevealed = true;
+        gsap.to(titleBar, { opacity: 1, yPercent: 0, duration: 0.6, ease: "power2.out" });
+      },
+      { root: scrollEl, threshold: 0.01 }
+    );
+    titleObserver.observe(titleBar);
+  }
+
+  // Lenis doesn't touch this container (see `prevent` in initSmoothScroll), so
+  // we ease the wheel input ourselves instead of letting it jump instantly.
+  function onWheel(e) {
+    e.preventDefault();
+    userScrolled = true;
+    if (retractTween) {
+      // User is scrolling before/while the auto-retract is playing — hand
+      // control over immediately instead of letting both tweens fight over
+      // the same scrollTop (which could stall the retract/title reveal).
+      wheelTarget = scrollEl.scrollTop;
+      retractTween.kill();
+      retractTween = null;
+    }
+    const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+    wheelTarget = Math.min(Math.max(wheelTarget + e.deltaY, 0), maxScroll);
+    wheelTween && wheelTween.kill();
+    wheelTween = gsap.to(scrollEl, {
+      scrollTop: wheelTarget,
+      duration: 1,
+      ease: "power3.out",
+      onUpdate: onScroll,
+    });
+  }
+
+  function fillMedia(card) {
+    mediaSlot.innerHTML = "";
+    const source = card.querySelector("img, video");
+    if (!source) return;
+    const clone = source.cloneNode(true);
+    if (clone.tagName === "VIDEO") {
+      clone.autoplay = true;
+      clone.muted = true;
+      clone.loop = true;
+      clone.playsInline = true;
+    }
+    mediaSlot.appendChild(clone);
+  }
+
+  // Clips the hero's bottom edge away as scrollTop grows, so it looks like the
+  // media retracts upward under the top bar — never resizes/distorts the image.
+  function onScroll() {
+    const progress = Math.min(Math.max(scrollEl.scrollTop / shrinkRange(), 0), 1);
+    gsap.set(hero, { "--hero-clip": `${progress * 100}%` });
+  }
+
+  function openLightbox(card) {
+    if (isOpen) return;
+    isOpen = true;
+
+    const slide = card.closest(".project-slide");
+    clientEl.textContent = slide ? slide.querySelector(".project-client")?.textContent ?? "" : "";
+    headingEl.textContent = slide ? slide.querySelector(".project-heading")?.textContent ?? "" : "";
+    yearEl.textContent = slide ? slide.querySelector(".project-year")?.textContent ?? "" : "";
+
+    fillMedia(card);
+    scrollEl.scrollTop = 0;
+    wheelTarget = 0;
+    userScrolled = false;
+
+    gsap.set(panel, { "--lightbox-inset": "49.7%" });
+    gsap.set(hero, { "--hero-clip": "0%" });
+    gsap.set(mediaSlot, { scale: 1.18 });
+    gsap.set(closeBtn, { opacity: 0 });
+    armTitleReveal();
+
+    lightbox.classList.add("is-active");
+    lightbox.setAttribute("aria-hidden", "false");
+    if (lenis) lenis.stop();
+
+    activeTween && activeTween.kill();
+    retractTween && retractTween.kill();
+    wheelTween && wheelTween.kill();
+    scrollEl.addEventListener("wheel", onWheel, { passive: false });
+    activeTween = gsap.timeline({
+      onComplete: () => {
+        scrollEl.addEventListener("scroll", onScroll);
+        if (userScrolled) return; // user already took control — don't yank it back
+        // Flash the full image briefly, then auto-retract it toward the top
+        // bar via clip-path, scrolling the case-study content into view.
+        retractTween = gsap.to(scrollEl, {
+          scrollTop: shrinkRange(),
+          duration: 0.9,
+          delay: 0.35,
+          ease: "power3.inOut",
+          onUpdate: onScroll,
+          onComplete: () => {
+            wheelTarget = shrinkRange();
+          },
+        });
+      },
+    });
+    activeTween
+      .to(panel, { "--lightbox-inset": "0%", duration: 0.85, ease: "power4.inOut" })
+      .to(mediaSlot, { scale: 1, duration: 0.85, ease: "power4.inOut" }, "<")
+      .to(closeBtn, { opacity: 1, duration: 0.3 }, "-=0.15");
+  }
+
+  function closeLightbox() {
+    if (!isOpen) return;
+    isOpen = false;
+
+    scrollEl.removeEventListener("scroll", onScroll);
+    scrollEl.removeEventListener("wheel", onWheel);
+    retractTween && retractTween.kill();
+    wheelTween && wheelTween.kill();
+    titleObserver && titleObserver.disconnect();
+
+    activeTween && activeTween.kill();
+    activeTween = gsap.timeline({
+      onComplete: () => {
+        lightbox.classList.remove("is-active");
+        lightbox.setAttribute("aria-hidden", "true");
+        mediaSlot.innerHTML = "";
+        if (lenis) lenis.start();
+      },
+    });
+    activeTween
+      .to(titleBar, { opacity: 0, yPercent: -30, duration: 0.3, ease: "power2.in" })
+      .to(closeBtn, { opacity: 0, duration: 0.2 }, "<")
+      .to(panel, { "--lightbox-inset": "49.7%", duration: 0.6, ease: "power4.inOut" }, "-=0.05");
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      openLightbox(card);
+    });
+  });
+
+  closeBtn.addEventListener("click", closeLightbox);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLightbox();
   });
 }
 
@@ -606,7 +824,7 @@ function initTestimonialsScroll() {
       scrollTrigger: {
         trigger: section,
         start: "top 85%",
-        end: "top 15%",
+        end: "top top", // Finishes exactly as the pin engages for a seamless handoff into the stack
         scrub: 0.8,
         invalidateOnRefresh: true,
       },
@@ -634,6 +852,7 @@ function initTestimonialsScroll() {
   // 3. Framer-Style Stacking Cards Animation (Solid Cards, Entrance from Outside of Screen)
   mm.add("(min-width: 901px)", () => {
     const HEADER_OFFSET = 78; // Height of card header row so name is always visible above
+    const CARD_STEP = 0.85; // Overlap between successive card entrances for a continuous cascading flow
 
     // Calculate Y distance to place cards completely outside the bottom of the screen
     function getOffscreenY() {
@@ -658,93 +877,30 @@ function initTestimonialsScroll() {
         pin: true,
         pinSpacing: true,
         pinType: "fixed",
-        scrub: 1,
+        scrub: 0.5,
         invalidateOnRefresh: true,
       },
     });
 
-    // Step 0: 1st Card (Habibullah Nahid) slides up from outside the screen to y = 0
-    stackTl.fromTo(
-      cards[0],
-      { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
-      {
-        y: 0,
-        yPercent: 0,
-        duration: 1,
-        ease: "power2.out",
-      },
-      0
-    );
-
-    // Step 1: Card 1 (Pike Wrang) slides up from outside the screen to y = 78px
-    if (cards[1]) {
-      stackTl.fromTo(
-        cards[1],
-        { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
-        {
-          y: HEADER_OFFSET * 1,
-          yPercent: 0,
-          duration: 1,
-          ease: "power2.out",
-        },
-        1
-      );
-    }
-
-    // Step 2: Card 2 (Rose Jonson) slides up from outside the screen to y = 156px
-    if (cards[2]) {
-      stackTl.fromTo(
-        cards[2],
-        { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
-        {
-          y: HEADER_OFFSET * 2,
-          yPercent: 0,
-          duration: 1,
-          ease: "power2.out",
-        },
-        2
-      );
-    }
-
-    // Step 3: Card 3 (ADM Absc Louis) slides up from outside the screen to y = 234px
-    if (cards[3]) {
-      stackTl.fromTo(
-        cards[3],
-        { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
-        {
-          y: HEADER_OFFSET * 3,
-          yPercent: 0,
-          duration: 1,
-          ease: "power2.out",
-        },
-        3
-      );
-    }
-
-    // Step 4: Generous hold duration so the final stacked state stays rock-solid in place
-    // without unpinning or shifting when the user scrolls a bit
-    stackTl.to({}, { duration: 1.8 });
-
-    // Click on card headers to scroll directly to that card's position in the stack
+    // Each card's entrance overlaps the previous one's so the cascade reads as one
+    // continuous motion instead of separate stop-start steps.
     cards.forEach((card, index) => {
-      const header = card.querySelector(".testimonial-card-header");
-      if (header) {
-        header.addEventListener("click", () => {
-          if (stackTl.scrollTrigger) {
-            const st = stackTl.scrollTrigger;
-            // Target progress is when this card reaches its resting position (time = index + 1)
-            const targetProgress = (index + 1) / stackTl.duration();
-            const targetScroll =
-              st.start + targetProgress * (st.end - st.start);
-            if (typeof lenis !== "undefined" && lenis) {
-              lenis.scrollTo(targetScroll, { duration: 1.0 });
-            } else {
-              window.scrollTo({ top: targetScroll, behavior: "smooth" });
-            }
-          }
-        });
-      }
+      stackTl.fromTo(
+        card,
+        { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
+        {
+          y: HEADER_OFFSET * index,
+          yPercent: 0,
+          duration: 0.9,
+          ease: "power2.out",
+        },
+        index * CARD_STEP
+      );
     });
+
+    // Generous hold duration so the final stacked state stays rock-solid in place
+    // without unpinning or shifting when the user scrolls a bit
+    stackTl.to({}, { duration: 1.4 });
 
     return () => {
       stackTl.kill();
@@ -771,10 +927,26 @@ function initServicesScroll() {
   gsap.registerPlugin(ScrollTrigger);
 
   const header = section.querySelector(".services-header");
-  const cards = section.querySelectorAll(".service-card");
-  const wavePath = section.querySelector(".services-neon-path");
 
-  // Animate header statement
+  // Background transitions from black (matching the end of testimonials) to white as the section scrolls into view
+  gsap.fromTo(
+    section,
+    { backgroundColor: "#000000" },
+    {
+      backgroundColor: "#ffffff",
+      ease: "none",
+      scrollTrigger: {
+        trigger: section,
+        start: "top bottom",
+        end: "top 78%", // Finishes just before the header/card content starts fading in below
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    }
+  );
+
+  // Animate header statement (scrubbed to scroll position so the reveal is
+  // always visible progressing as you scroll, not a fixed-timer fade you can scroll past)
   if (header) {
     gsap.fromTo(
       header,
@@ -782,55 +954,162 @@ function initServicesScroll() {
       {
         opacity: 1,
         y: 0,
-        duration: 0.9,
         ease: "power2.out",
         scrollTrigger: {
           trigger: section,
-          start: "top 80%",
-          toggleActions: "play none none reverse",
+          start: "top 90%",
+          end: "top 55%",
+          scrub: 0.6,
+          invalidateOnRefresh: true,
         },
       }
     );
   }
+}
 
-  // Animate cards with stagger
-  if (cards.length > 0) {
-    gsap.fromTo(
-      cards,
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        stagger: 0.12,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: ".services-grid",
-          start: "top 85%",
-          toggleActions: "play none none reverse",
-        },
-      }
-    );
-  }
+/* ==========================================================================
+   Services Cards Horizontal Reveal (pinned — section locks in place while the
+   track slides left; the last card starts fully off-screen and the pin
+   releases once all 4 cards are fully in view)
+   ========================================================================== */
+function initServicesHorizontalScroll() {
+  const section = document.getElementById("servicesCardsSection");
+  const track = document.getElementById("servicesTrack");
+  const cards = document.querySelectorAll(".service-card");
 
-  // Subtle wave curve parallax on scroll
-  if (wavePath) {
-    gsap.fromTo(
-      wavePath,
-      { opacity: 0.8, y: 20 },
+  if (!section || !track || cards.length < 2) return;
+  if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const mm = gsap.matchMedia();
+
+  mm.add("(min-width: 901px)", () => {
+    // Cards divide the track evenly with no natural overflow, so shifting the
+    // whole track right by exactly one card's slot (card + gap) hides the
+    // last card completely while opening an equal blank slot on the left.
+    function getSlot() {
+      return cards[1].offsetLeft - cards[0].offsetLeft;
+    }
+
+    const revealTween = gsap.fromTo(
+      track,
+      { x: () => getSlot() },
       {
-        opacity: 1,
-        y: -10,
+        x: 0,
         ease: "none",
         scrollTrigger: {
           trigger: section,
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1,
+          start: "top top",
+          end: () => `+=${getSlot() * 3}`, // generous distance so the scrub feels smooth, not abrupt
+          pin: true,
+          pinSpacing: true,
+          pinType: "fixed",
+          scrub: true, // ties directly to scroll position; avoids extra lag stacking on top of Lenis's own smoothing
+          invalidateOnRefresh: true,
         },
       }
     );
+
+    return () => {
+      revealTween.kill();
+      gsap.set(track, { clearProps: "all" });
+    };
+  });
+}
+
+/* ==========================================================================
+   Footer — live local time + back-to-top
+   ========================================================================== */
+function initFooter() {
+  const clockEl = document.getElementById("footerLocalTime");
+  const toTopBtn = document.getElementById("footerToTop");
+
+  if (clockEl) {
+    const updateClock = () => {
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const offset = -now.getTimezoneOffset() / 60;
+      const sign = offset >= 0 ? "+" : "";
+      clockEl.textContent = `${time} UTC${sign}${offset}`;
+    };
+    updateClock();
+    setInterval(updateClock, 30000);
   }
+
+  if (toTopBtn) {
+    toTopBtn.addEventListener("click", () => {
+      if (lenis) {
+        lenis.scrollTo(0, { duration: 1.4 });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  }
+
+  initFooterBend();
+  initFooterNameReveal();
+}
+
+/* ==========================================================================
+   Footer Giant Name Reveal — each letter rises up from below and sharpens
+   out of a blur, one after another, as the footer scrolls into view.
+   ========================================================================== */
+function initFooterNameReveal() {
+  const nameEl = document.getElementById("footerGiantName");
+  const letters = document.querySelectorAll(".footer-letter");
+
+  if (!nameEl || letters.length === 0) return;
+  if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  gsap.set(letters, { opacity: 0, y: 60, filter: "blur(14px)" });
+
+  gsap.to(letters, {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    duration: 0.8,
+    ease: "power2.out",
+    stagger: 0.06,
+    scrollTrigger: {
+      trigger: nameEl,
+      start: "top 90%",
+      end: "top 40%",
+      scrub: 0.6,
+    },
+  });
+}
+
+/* ==========================================================================
+   Footer Top-Edge Bend — starts as a downward-sagging parabola (page
+   background dipping into the dark footer) and straightens flat on scroll.
+   ========================================================================== */
+function initFooterBend() {
+  const footer = document.getElementById("siteFooter");
+  const bendPath = document.getElementById("footerBendTopPath");
+
+  if (!footer || !bendPath) return;
+  if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const MAX_BEND = 150;
+
+  function setBend(bend) {
+    bendPath.setAttribute("d", `M 0,0 Q 720,${bend} 1440,0 L 1440,0 L 0,0 Z`);
+  }
+
+  setBend(MAX_BEND);
+
+  ScrollTrigger.create({
+    trigger: footer,
+    start: "top bottom",
+    end: "top top",
+    scrub: 0.6,
+    onUpdate: (self) => setBend(MAX_BEND * (1 - self.progress)),
+  });
 }
 
 
