@@ -1095,36 +1095,22 @@ ul {
 }
 
 /* ==========================================================================
-   Testimonials Section (Framer Stacking Cards & Background Transition)
+   Testimonials Section (single-slide reveal: tag, quote, person, big index)
    ========================================================================== */
 .testimonials-section {
   position: relative;
   background-color: transparent;
   color: #ffffff;
   width: 100%;
-  padding: 1.5rem 0 6rem;
-  overflow: visible;
-  box-sizing: border-box;
-}
-
-.testimonials-header-container {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 4rem 2rem;
-  box-sizing: border-box;
+  min-height: 90vh;
   display: flex;
-  justify-content: center;
-}
-
-.testimonials-header {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 0.75rem;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.testimonials-eyebrow {
+.testimonials-heading {
+  display: block;
   font-family:
     "Plus Jakarta Sans",
     -apple-system,
@@ -1132,78 +1118,111 @@ ul {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: #01c45e; /* Vibrant lime green */
-  letter-spacing: -0.01em;
-  text-align: center;
-}
-
-.testimonials-title {
-  font-family:
-    "Plus Jakarta Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  font-size: clamp(2.4rem, 4.5vw, 3.6rem);
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  margin: 0;
-  padding: 0;
-  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2.5rem;
 }
 
 .testimonials-container {
-  max-width: 860px;
+  max-width: 1180px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 6rem;
   box-sizing: border-box;
   position: relative;
 }
 
-/* Framer Stacking Cards Container with Visible Header Tabs */
-.testimonials-stack {
-  position: relative;
-  width: 100%;
-  min-height: 640px;
-  height: 640px;
-  overflow: visible;
-}
-
-.testimonial-card {
+.testimonial-index-bg {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background-color: #141414;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 1.25rem 2rem 1.75rem;
-  box-shadow: none;
-  box-sizing: border-box;
-  transform-origin: top center;
-  will-change: transform;
+  left: -0.5rem;
+  top: 50%;
+  transform: translateY(-42%);
+  font-family: Georgia, serif;
+  font-size: clamp(7rem, 13vw, 12rem);
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.05);
+  user-select: none;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.testimonial-tag {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1.5rem;
+}
+
+.testimonial-quote {
+  position: relative;
+  z-index: 1;
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0 0 3rem;
+  max-width: 52ch;
+}
+
+.testimonial-quote .t-word {
+  display: inline-block;
+  margin-right: 0.28em;
+}
+
+.testimonial-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.testimonial-person {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.testimonial-person-rule {
+  width: 20px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.testimonial-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
+.testimonial-person-info {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  transition: border-color 0.3s ease;
-}
-
-.testimonial-card:hover {
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.testimonial-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: none;
+  gap: 0.1rem;
 }
 
 .testimonial-name {
@@ -1214,10 +1233,10 @@ ul {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: clamp(1.15rem, 1.35vw, 1.35rem);
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: #ffffff;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -1231,58 +1250,88 @@ ul {
     sans-serif;
   font-size: 13px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
   letter-spacing: -0.01em;
-  text-align: right;
+}
+
+.testimonial-nav {
+  display: flex;
+  gap: 0.6rem;
   flex-shrink: 0;
 }
 
-.testimonial-card-body {
-  background-color: #242424;
-  padding: 1.75rem 2.25rem;
+.testimonial-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
   display: flex;
   align-items: center;
-  gap: 2rem;
-  box-sizing: border-box;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    color 0.25s ease;
 }
 
-.testimonial-avatar-wrapper {
-  width: 95px;
-  height: 95px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  background-color: #111111;
-  border: none;
-  box-shadow: none;
+.testimonial-nav-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
 }
 
-.testimonial-avatar {
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .testimonials-section {
+    min-height: auto;
+    padding: 6rem 0;
+  }
+
+  .testimonials-container {
+    padding: 0 1.5rem;
+  }
+
+  .testimonial-index-bg {
+    font-size: 6rem;
+  }
+
+  .testimonial-quote {
+    max-width: none;
+  }
+
+  .testimonial-footer {
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Skills & Tech Stack Section (marquee ticker of tools/technologies)
+   ========================================================================== */
+.tech-stack-section {
+  position: relative;
+  background-color: transparent; /* Post-Services white, from the shared works-reveal ancestor */
+  color: #111111;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  padding: 5rem 0 7rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.testimonial-quote-wrapper {
+.tech-stack-container {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  padding: 0 2rem;
+  box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
 }
 
-.testimonial-quote-icon {
-  font-family: Georgia, serif;
-  font-size: 38px;
-  line-height: 0.9;
-  font-weight: 700;
-  color: #01c45e; /* Vibrant lime green matching screenshot */
-  flex-shrink: 0;
-  margin-top: -2px;
-  user-select: none;
-}
-
-.testimonial-quote-text {
+.tech-stack-eyebrow {
   font-family:
     "Plus Jakarta Sans",
     -apple-system,
@@ -1290,57 +1339,95 @@ ul {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: clamp(0.92rem, 1.1vw, 1.04rem);
-  line-height: 1.55;
-  color: #ffffff;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  margin: 0;
-  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #01c45e;
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .testimonials-header-container {
-    padding: 2.5rem 1.5rem 2rem;
-  }
+.tech-stack-title {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
 
-  .testimonials-stack {
-    height: auto;
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
+/* Horizontal cascading card stack (matches guillaumezhu.com's toolkit
+   section): one colored card is active/centered/full-size at a time, and as
+   the next one takes over, previous cards recede to the left into an
+   overlapping, individually-rotated pile — driven entirely by JS transforms
+   (translate + rotate + scale), see initTechWheel in app.js. */
+.tech-wheel {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  margin: 0 auto;
+  max-width: 1000px;
+  overflow: hidden;
+}
 
-  .testimonial-card {
-    position: relative;
-    top: auto;
-    left: auto;
-    padding: 1.5rem 1.25rem;
-  }
+.tech-wheel-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 190px;
+  height: 260px;
+  margin: -130px 0 0 -95px;
+  will-change: transform, opacity;
+}
 
-  .testimonial-card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-  }
+.tech-wheel-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: var(--card-bg, #ffffff);
+  color: var(--card-fg, #111111);
+  border-radius: 22px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+}
 
-  .testimonial-role {
-    text-align: left;
-  }
+.tech-card-name {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
 
-  .testimonial-card-body {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1.5rem;
-    gap: 1.25rem;
-  }
-
-  .testimonial-avatar-wrapper {
-    width: 75px;
-    height: 75px;
-  }
+.tech-card-tag {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background-color: rgba(127, 127, 127, 0.25);
 }
 
 .content-section {
@@ -1998,7 +2085,7 @@ html.lenis body {
    ========================================================================== */
 .services-section {
   position: relative;
-  background-color: #000000; /* Starts black to match the tail of the testimonials section; GSAP scrubs this to white on scroll-in */
+  background-color: transparent; /* Ancestor (#worksRevealCard) is scrubbed black -> white behind it for a seamless wash */
   color: #111111;
   width: 100%;
   padding: 8rem 0 3rem;

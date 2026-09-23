@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTestimonialsScroll();
   initServicesScroll();
   initServicesHorizontalScroll();
+  initTechWheel();
   initProjectMediaCursor();
   initProjectLightbox();
   initFooter();
@@ -564,11 +565,101 @@ function initProjectsHorizontalScroll() {
       },
     });
 
-
     return () => {
       horizontalTween.kill();
       gsap.set(track, { clearProps: "all" });
     };
+  });
+}
+
+/* ==========================================================================
+   Skills & Tech Stack Wheel (horizontal cascading card stack, matches
+   guillaumezhu.com's toolkit section: one colored card is active/centered/
+   full-size at a time; as the next one takes over, previous cards recede to
+   the left into an overlapping, individually-rotated pile, pinned and driven
+   continuously by scroll — same "focus lens" technique as the testimonials
+   section, just horizontal instead of vertical)
+   ========================================================================== */
+function initTechWheel() {
+  const wheel = document.getElementById("techWheel");
+  const section = document.getElementById("tech-stack");
+  if (!wheel || !section) return;
+  if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const slots = Array.from(wheel.querySelectorAll(".tech-wheel-slot"));
+  const N = slots.length;
+  const LANE_STEP = 46; // px each successive card's "home" position sits to the right of the previous
+  // Deterministic small per-card rotation for a scattered-playing-cards look
+  const cardAngle = (i) => (((i * 37) % 11) - 5) * 1.1;
+
+  // Heading reveal as the section scrolls into view
+  const container = section.querySelector(".tech-stack-container");
+  if (container) {
+    gsap.fromTo(
+      container,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1,
+        y: 0,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: section,
+          start: "top 85%",
+          end: "top 50%",
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+        },
+      }
+    );
+  }
+
+  function layoutCards(focus) {
+    slots.forEach((slot, i) => {
+      const distance = i - focus;
+      const isActive = Math.abs(distance) < 0.02;
+      const scale = isActive ? 1 : 0.9;
+      const opacity = distance > 0.5 ? 0 : 1; // not-yet-reached cards stay hidden off to the right
+      // The whole lane shifts left as focus advances, keeping the focused
+      // card's "home" position centered at x:0 — already-active cards drift
+      // further left (retired into the pile) the more the focus moves on.
+      const x = (i - focus) * LANE_STEP;
+      gsap.set(slot, {
+        x,
+        y: isActive ? -14 : 0,
+        scale,
+        opacity,
+        rotate: isActive ? 0 : cardAngle(i),
+        zIndex: i,
+      });
+    });
+  }
+
+  gsap.set(slots, { opacity: 0 });
+  layoutCards(0);
+
+  const focusState = { value: 0 };
+  const PX_PER_CARD = 260;
+  const pinDistance = (N - 1) * PX_PER_CARD;
+
+  const wheelTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: "top top",
+      end: "+=" + pinDistance,
+      pin: true,
+      pinSpacing: true,
+      pinType: "fixed",
+      scrub: 0.6,
+      invalidateOnRefresh: true,
+    },
+  });
+  wheelTl.to(focusState, {
+    value: N - 1,
+    ease: "none",
+    duration: 1,
+    onUpdate: () => layoutCards(focusState.value),
   });
 }
 
@@ -610,7 +701,8 @@ function initProjectLightbox() {
   const yearEl = document.getElementById("lightboxYear");
   const cards = document.querySelectorAll(".project-media-card");
 
-  if (!lightbox || !panel || !scrollEl || !hero || !mediaSlot || !titleBar || cards.length === 0) return;
+  if (!lightbox || !panel || !scrollEl || !hero || !mediaSlot || !titleBar || cards.length === 0)
+    return;
   if (typeof gsap === "undefined") return;
 
   let activeTween = null;
@@ -694,9 +786,11 @@ function initProjectLightbox() {
     isOpen = true;
 
     const slide = card.closest(".project-slide");
-    clientEl.textContent = slide ? slide.querySelector(".project-client")?.textContent ?? "" : "";
-    headingEl.textContent = slide ? slide.querySelector(".project-heading")?.textContent ?? "" : "";
-    yearEl.textContent = slide ? slide.querySelector(".project-year")?.textContent ?? "" : "";
+    clientEl.textContent = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    headingEl.textContent = slide
+      ? (slide.querySelector(".project-heading")?.textContent ?? "")
+      : "";
+    yearEl.textContent = slide ? (slide.querySelector(".project-year")?.textContent ?? "") : "";
 
     fillMedia(card);
     scrollEl.scrollTop = 0;
@@ -781,138 +875,233 @@ function initProjectLightbox() {
 }
 
 /* ==========================================================================
-   Testimonials Section (Framer Stacking Cards & Background Transition)
+   Testimonials Section (single-slide reveal, advances one-per-scroll-step)
    ========================================================================== */
 function initTestimonialsScroll() {
   const section = document.getElementById("testimonials");
   const cardContainer = document.getElementById("worksRevealCard");
-  const cards = document.querySelectorAll(".testimonial-card");
-  const title = section ? section.querySelector(".testimonials-title") : null;
+  const tagEl = document.getElementById("testimonialTag");
+  const quoteEl = document.getElementById("testimonialQuote");
+  const avatarEl = document.getElementById("testimonialAvatar");
+  const nameEl = document.getElementById("testimonialName");
+  const roleEl = document.getElementById("testimonialRole");
+  const indexBgEl = document.getElementById("testimonialIndexBg");
+  const personEl = document.getElementById("testimonialPerson");
+  const prevBtn = document.getElementById("testimonialPrev");
+  const nextBtn = document.getElementById("testimonialNext");
 
-  if (!section || cards.length === 0) return;
+  if (!section || !tagEl || !quoteEl) return;
   if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
 
   gsap.registerPlugin(ScrollTrigger);
 
-  const mm = gsap.matchMedia();
-
-  // 1. Smooth Background Color Transition from White to Black on the unified works container
-  const bgTarget = cardContainer || section;
-  gsap.fromTo(
-    bgTarget,
-    { backgroundColor: "#ffffff" },
+  const testimonials = [
     {
-      backgroundColor: "#000000",
-      ease: "none",
-      scrollTrigger: {
-        trigger: section,
-        start: "top 95%", // Begins transition as testimonials approaches viewport
-        end: "top top", // Fully solid black exactly when pinned at top
-        scrub: true,
-        invalidateOnRefresh: true,
-      },
+      company: "CraftedAI",
+      quote:
+        "Nahid's work in UX design exceeded my expectations, with incredible attention to detail and creativity. His proactive communication made the whole collaboration smooth from start to finish.",
+      name: "Habibullah Nahid",
+      role: "Founder and CEO",
+      avatar: "./resources/testimonial-1.jpg",
+    },
+    {
+      company: "CraftedAI",
+      quote:
+        "Extremely creative and efficient to work with. I needed an entire CRM system designed from scratch, and Nahid delivered beyond my expectations. Will definitely be working with him again.",
+      name: "Pike Wrang",
+      role: "Founder and CEO",
+      avatar: "./resources/testimonial-2.jpg",
+    },
+    {
+      company: "CraftedAI",
+      quote:
+        "I would give Nahid a 20-star review if I could. My delivery exceeded expectations in both quality and service — if you need someone who turns loose requirements into a polished product, book him.",
+      name: "Rose Jonson",
+      role: "Founder and CEO",
+      avatar: "./resources/testimonial-3.jpg",
+    },
+    {
+      company: "CraftedAI",
+      quote:
+        "Nahid is everything that makes a project perfect: attention to detail, thoughtful feedback, and real talent. Absolutely book him if you want the best experience — you won't regret it.",
+      name: "ADM Absc Louis",
+      role: "Founder and CEO",
+      avatar: "./resources/testimonial-4.jpg",
+    },
+  ];
+
+  const N = testimonials.length;
+  const PX_PER_STEP = 900; // scroll pixels needed to advance one testimonial (shared with the pin below)
+  const pinDistance = (N - 1) * PX_PER_STEP;
+
+  // ONE unified white -> black -> white timeline on the shared works-reveal
+  // container, covering testimonials' approach all the way through Services'
+  // exit (the section itself stays transparent). This MUST be a single
+  // ScrollTrigger/timeline rather than two independent scrub tweens: with
+  // `scrub`, a tween's value at any scroll position before its own trigger
+  // range is clamped to progress 0 (its "from" state) — so a second separate
+  // black->white tween further down the page forces black onto this shared
+  // element from the moment it's created (page load), before the user has
+  // scrolled anywhere near it, which turned the EARLIER Projects/Cases
+  // section (sharing the same ancestor) black from the very start. One
+  // continuous timeline has a single unambiguous "before" state (white).
+  //
+  // The black->white fade is positioned to start EXACTLY when the pin
+  // releases (right after the 4th/last testimonial finishes) — computed in
+  // real pixels (not a guessed timeline fraction): "top 95%" to "top top" is
+  // 0.95 * viewport-height of scroll, then the pin itself lasts
+  // `pinDistance`. Using those same pixel numbers as both the timeline's
+  // "time" units and the ScrollTrigger's actual scroll range makes the
+  // mapping exact.
+  const bgTarget = cardContainer || section;
+  const darkenDur = 500;
+  const fadeOutDur = 650;
+  // Plain number, computed once (matches how the pin's own `end` below is
+  // also a fixed number, not resize-reactive) — GSAP timeline child
+  // POSITION parameters (unlike ScrollTrigger's start/end) don't support
+  // functions; passing one silently falls back to "right after the previous
+  // tween", which was placing the fade way too early.
+  const gapToPinStart = 0.95 * window.innerHeight;
+  const pinReleasePoint = gapToPinStart + pinDistance;
+  const colorTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: "top 95%",
+      end: "+=" + (pinReleasePoint + fadeOutDur),
+      scrub: 0.6,
+      invalidateOnRefresh: true,
+    },
+  });
+  colorTl.fromTo(bgTarget, { backgroundColor: "#ffffff" }, { backgroundColor: "#000000", ease: "none", duration: darkenDur }, 0);
+  // (implicit hold at black through the pin — no tween needed, it just stays)
+  colorTl.to(bgTarget, { backgroundColor: "#ffffff", ease: "none", duration: fadeOutDur }, pinReleasePoint);
+  let currentIndex = -1;
+  let revealTl = null;
+
+  function renderSlide(index, animate) {
+    const data = testimonials[index];
+
+    tagEl.textContent = data.company;
+    avatarEl.src = data.avatar;
+    avatarEl.alt = data.name;
+    nameEl.textContent = data.name;
+    roleEl.textContent = data.role;
+    indexBgEl.textContent = String(index + 1).padStart(2, "0");
+
+    quoteEl.innerHTML = "";
+    data.quote.split(" ").forEach((word) => {
+      const span = document.createElement("span");
+      span.className = "t-word";
+      span.textContent = word;
+      quoteEl.appendChild(span);
+      quoteEl.appendChild(document.createTextNode(" "));
+    });
+    const words = quoteEl.querySelectorAll(".t-word");
+
+    if (revealTl) revealTl.kill();
+
+    if (!animate) {
+      gsap.set(tagEl, { opacity: 1, x: 0 });
+      gsap.set(words, { opacity: 1, y: 0, filter: "blur(0px)" });
+      gsap.set(personEl, { opacity: 1, y: 0 });
+      return;
     }
-  );
 
-  // 2. Centered Header Reveal Animation (Like About Section: Eyebrow then Title)
-  const eyebrow = section.querySelector(".testimonials-eyebrow");
-  if (eyebrow && title) {
-    gsap.set(eyebrow, { opacity: 0, y: 30 });
-    gsap.set(title, { opacity: 0, y: 45 });
-
-    const headerRevealTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top 85%",
-        end: "top top", // Finishes exactly as the pin engages for a seamless handoff into the stack
-        scrub: 0.8,
-        invalidateOnRefresh: true,
-      },
-    });
-
-    headerRevealTl.to(eyebrow, {
-      opacity: 1,
-      y: 0,
-      duration: 0.8,
-      ease: "power2.out",
-    });
-
-    headerRevealTl.to(
-      title,
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1.0,
-        ease: "power2.out",
-      },
-      "+=0.1"
+    revealTl = gsap.timeline();
+    // Tag: reveals left-to-right with opacity
+    revealTl.fromTo(tagEl, { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" });
+    // Quote: word-by-word, blurred -> sharp (settles into focus like sand)
+    revealTl.fromTo(
+      words,
+      { opacity: 0, y: 14, filter: "blur(8px)" },
+      { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out", stagger: 0.03 },
+      "-=0.2"
+    );
+    // Person block: only starts once the quote has fully finished revealing
+    // (no explicit position — GSAP appends it right after the previous
+    // tween, including its stagger, ends).
+    revealTl.fromTo(
+      personEl,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }
     );
   }
 
-  // 3. Framer-Style Stacking Cards Animation (Solid Cards, Entrance from Outside of Screen)
+  function goToIndex(index) {
+    const clamped = Math.max(0, Math.min(N - 1, index));
+    if (clamped === currentIndex) return;
+    currentIndex = clamped;
+    renderSlide(currentIndex, true);
+  }
+
+  // First slide appears instantly (no animation) as soon as it's built
+  goToIndex(0);
+  renderSlide(0, false);
+
+  // Item-by-item reveal (same technique as the About section's initTextReveal:
+  // a single scrubbed timeline that reveals each piece in sequence with
+  // opacity + y, using "+=" relative offsets for a cascading feel) instead of
+  // the whole block fading in as one flat unit. Set AFTER the instant render
+  // above so these hidden states win over renderSlide's instant-visible ones.
+  const headingEl = section.querySelector(".testimonials-heading");
+  const quoteBlock = section.querySelector(".testimonial-quote");
+  const footerBlock = section.querySelector(".testimonial-footer");
+
+  if (headingEl) gsap.set(headingEl, { opacity: 0, y: 40 });
+  gsap.set(tagEl, { opacity: 0, y: 40 });
+  if (quoteBlock) gsap.set(quoteBlock, { opacity: 0, y: 55 });
+  if (footerBlock) gsap.set(footerBlock, { opacity: 0, y: 45 });
+
+  const entranceTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: "top 45%",
+      end: "top 5%",
+      scrub: 1.4,
+      invalidateOnRefresh: true,
+    },
+  });
+
+  if (headingEl) {
+    entranceTl.to(headingEl, { opacity: 1, y: 0, duration: 1.1, ease: "sine.out" });
+  }
+  entranceTl.to(tagEl, { opacity: 1, y: 0, duration: 1.1, ease: "sine.out" }, "+=0.2");
+  if (quoteBlock) {
+    entranceTl.to(quoteBlock, { opacity: 1, y: 0, duration: 1.5, ease: "sine.out" }, "+=0.2");
+  }
+  if (footerBlock) {
+    entranceTl.to(footerBlock, { opacity: 1, y: 0, duration: 1.2, ease: "sine.out" }, "+=0.2");
+  }
+
+  prevBtn && prevBtn.addEventListener("click", () => goToIndex(currentIndex - 1));
+  nextBtn && nextBtn.addEventListener("click", () => goToIndex(currentIndex + 1));
+
+  const mm = gsap.matchMedia();
+
   mm.add("(min-width: 901px)", () => {
-    const HEADER_OFFSET = 78; // Height of card header row so name is always visible above
-    const CARD_STEP = 0.85; // Overlap between successive card entrances for a continuous cascading flow
-
-    // Calculate Y distance to place cards completely outside the bottom of the screen
-    function getOffscreenY() {
-      return window.innerHeight + 60;
-    }
-
-    // Initial card state: all cards start completely outside of the screen, 100% solid
-    cards.forEach((card, index) => {
-      gsap.set(card, {
-        zIndex: index + 1,
-        y: getOffscreenY(),
-        yPercent: 0,
-        opacity: 1, // Completely solid, NO transparency / ghosting while stacking
-      });
-    });
-
-    const stackTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: "+=4800",
-        pin: true,
-        pinSpacing: true,
-        pinType: "fixed",
-        scrub: 0.5,
-        invalidateOnRefresh: true,
+    const st = ScrollTrigger.create({
+      trigger: section,
+      start: "top top",
+      end: "+=" + pinDistance,
+      pin: true,
+      pinSpacing: true,
+      pinType: "fixed",
+      // No `snap` here — GSAP's own snap-settle tween fires extra onUpdate
+      // calls as it eases the scroll position to the nearest point, which
+      // was flipping the rounded index a second time right after the first
+      // reveal (looked like the animation "playing twice"). Rounding
+      // `self.progress` below is already enough to keep exactly one
+      // testimonial showing at a time.
+      invalidateOnRefresh: true,
+      onUpdate: (self) => {
+        const idx = Math.round(self.progress * (N - 1));
+        goToIndex(idx);
       },
     });
 
-    // Each card's entrance overlaps the previous one's so the cascade reads as one
-    // continuous motion instead of separate stop-start steps.
-    cards.forEach((card, index) => {
-      stackTl.fromTo(
-        card,
-        { y: () => getOffscreenY(), yPercent: 0, opacity: 1 },
-        {
-          y: HEADER_OFFSET * index,
-          yPercent: 0,
-          duration: 0.9,
-          ease: "power2.out",
-        },
-        index * CARD_STEP
-      );
-    });
-
-    // Generous hold duration so the final stacked state stays rock-solid in place
-    // without unpinning or shifting when the user scrolls a bit
-    stackTl.to({}, { duration: 1.4 });
-
     return () => {
-      stackTl.kill();
-      cards.forEach((card) => gsap.set(card, { clearProps: "all" }));
+      st.kill();
     };
-  });
-
-  // Mobile fallback (solid cards displayed cleanly in column)
-  mm.add("(max-width: 900px)", () => {
-    cards.forEach((card) => {
-      gsap.set(card, { opacity: 1, yPercent: 0, y: 0 });
-    });
   });
 }
 
@@ -928,38 +1117,25 @@ function initServicesScroll() {
 
   const header = section.querySelector(".services-header");
 
-  // Background transitions from black (matching the end of testimonials) to white as the section scrolls into view
-  gsap.fromTo(
-    section,
-    { backgroundColor: "#000000" },
-    {
-      backgroundColor: "#ffffff",
-      ease: "none",
-      scrollTrigger: {
-        trigger: section,
-        start: "top bottom",
-        end: "top 78%", // Finishes just before the header/card content starts fading in below
-        scrub: true,
-        invalidateOnRefresh: true,
-      },
-    }
-  );
+  // Background (white -> black -> white) is handled entirely by the single
+  // unified timeline in initTestimonialsScroll — see the comment there for
+  // why it must be one shared timeline rather than a separate tween here.
 
-  // Animate header statement (scrubbed to scroll position so the reveal is
-  // always visible progressing as you scroll, not a fixed-timer fade you can scroll past)
+  // Header statement reveal — same later start / slower, smoother scrub
+  // pacing as the testimonials section's item-by-item reveal.
   if (header) {
     gsap.fromTo(
       header,
-      { opacity: 0, y: 35 },
+      { opacity: 0, y: 45 },
       {
         opacity: 1,
         y: 0,
-        ease: "power2.out",
+        ease: "sine.out",
         scrollTrigger: {
           trigger: section,
-          start: "top 90%",
-          end: "top 55%",
-          scrub: 0.6,
+          start: "top 45%",
+          end: "top 5%",
+          scrub: 1.4,
           invalidateOnRefresh: true,
         },
       }
@@ -1111,5 +1287,3 @@ function initFooterBend() {
     onUpdate: (self) => setBend(MAX_BEND * (1 - self.progress)),
   });
 }
-
-
