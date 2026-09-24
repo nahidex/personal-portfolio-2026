@@ -24,7 +24,46 @@
     <link rel="stylesheet" href="https://unpkg.com/lenis@1.1.20/dist/lenis.css" />
     <script src="https://unpkg.com/lenis@1.1.20/dist/lenis.min.js"></script>
   </head>
-  <body>
+  <body class="is-loading">
+    <!-- Loading curtain: greetings on black, then the whole panel arcs away upward -->
+    <div class="preloader" id="preloader" aria-hidden="true">
+      <div class="preloader-panel" id="preloaderPanel">
+        <span class="preloader-word" id="preloaderWord">Hello</span>
+        <svg
+          class="preloader-bend"
+          viewBox="0 0 1440 240"
+          preserveAspectRatio="none"
+          focusable="false"
+        >
+          <path id="preloaderBendPath" d="M 0,0 L 1440,0 Q 720,0 0,0 Z" fill="#000000"></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Section-jump curtain: wipes up over the page, the jump happens behind
+         it, then it keeps going and uncovers the destination -->
+    <div class="page-curtain" id="pageCurtain" aria-hidden="true">
+      <div class="page-curtain-panel" id="pageCurtainPanel">
+        <span class="page-curtain-label" id="pageCurtainLabel"></span>
+        <svg
+          class="page-curtain-bend page-curtain-bend-top"
+          viewBox="0 0 1440 240"
+          preserveAspectRatio="none"
+          focusable="false"
+        >
+          <path id="pageCurtainBendTop" d="M 0,240 L 1440,240 Q 720,240 0,240 Z" fill="#000000" />
+        </svg>
+        <svg
+          class="page-curtain-bend page-curtain-bend-bottom"
+          viewBox="0 0 1440 240"
+          preserveAspectRatio="none"
+          focusable="false"
+        >
+          <path id="pageCurtainBendBottom" d="M 0,0 L 1440,0 Q 720,0 0,0 Z" fill="#000000" />
+        </svg>
+      </div>
+    </div>
+
     <!-- Responsive Navbar -->
     <header class="navbar-wrapper">
       <nav class="navbar" id="navbar">
@@ -55,8 +94,10 @@
 
     <!-- Main Content -->
     <main>
-      <!-- Hero Section -->
-      <section class="hero-section">
+      <!-- Everything the preloader curtain carries up with it -->
+      <div class="hero-stage" id="heroStage">
+        <!-- Hero Section -->
+        <section class="hero-section">
         <div class="hero-container">
           <div class="hero-left">
             <h1 class="hero-statement">
@@ -85,6 +126,20 @@
                 <span class="role-level">Senior</span>
                 <span class="role-title">Product Designer</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Straddles the hero's bottom rule, to the left of the profile -->
+        <div class="hero-meta">
+          <div class="hero-meta-inner">
+            <div class="hero-meta-col">
+              <span class="hero-meta-label">Local time</span>
+              <span class="hero-meta-value" id="heroLocalTime">—</span>
+            </div>
+            <div class="hero-meta-col">
+              <span class="hero-meta-label">Dhaka, Bangladesh</span>
+              <span class="hero-meta-value">23.8041&deg; N, 90.4152&deg; E</span>
             </div>
           </div>
         </div>
@@ -185,6 +240,8 @@
           </div>
         </div>
       </section>
+      </div>
+      <!-- /.hero-stage -->
 
       <!-- About Section (Pure Black with Dynamic Scroll Bend Effect) -->
       <section id="about" class="about-section">
@@ -209,13 +266,12 @@
               pixel-perfect, minimal, and user-friendly interfaces.
             </p>
             <p class="about-bio">
-              My diverse journey began in Dhaka, where I mastered English, Bangla, and excelled in
-              math and sciences. With a Post Grad in Electrical and Electronic Engineering, I
-              transitioned to design in 2014. My unique blend of technical expertise and design
-              skills enables me to create seamless digital experiences. I specialize in
-              human-centered design, UX problem solving, and UI design, leveraging front-end
-              technologies. Collaborating with professionals, I've crafted impactful digital
-              solutions.
+              My journey began in Dhaka, where I studied English and Bangla and excelled in math and
+              the sciences. With a postgraduate degree in Electrical and Electronic Engineering, I
+              moved into design in 2014. That blend of technical expertise and design skill lets me
+              create seamless digital experiences. I specialize in human-centered design, UX
+              problem-solving, and UI design, backed by front-end development. Working alongside
+              other professionals, I have crafted digital solutions with real impact.
             </p>
           </div>
 

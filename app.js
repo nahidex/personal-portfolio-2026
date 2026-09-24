@@ -5,6 +5,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   initSmoothScroll();
+  initPreloader();
   initScrollNavbar();
   initMobileMenu();
   initMarquee();
@@ -20,6 +21,125 @@ document.addEventListener("DOMContentLoaded", () => {
   initProjectLightbox();
   initFooter();
 });
+
+/* ==========================================================================
+   Preloader — cycles "hello" in a handful of languages on a black curtain,
+   then lifts the whole curtain away, its trailing edge bowed into an arc.
+   ========================================================================== */
+function initPreloader() {
+  const root = document.getElementById("preloader");
+  const panel = document.getElementById("preloaderPanel");
+  const word = document.getElementById("preloaderWord");
+  const bendPath = document.getElementById("preloaderBendPath");
+  if (!root || !panel || !word || !bendPath) return;
+
+  const GREETINGS = [
+    "Hello",
+    "হ্যালো",
+    "Hola",
+    "Bonjour",
+    "নমস্কার",
+    "こんにちは",
+    "Ciao",
+    "안녕하세요",
+    "Hallo",
+    "مرحبا",
+    "Olá",
+    "नमस्ते",
+  ];
+  const WORD_MS = 200; // how long each greeting is held
+  const MIN_MS = 1900; // floor, so the greetings are readable on a warm cache
+  const MAX_MS = 5000; // ceiling, so a stalled asset can never trap the visitor
+  const BEND = 240; // control point for the trailing arc, in viewBox units
+
+  const animated =
+    typeof gsap !== "undefined" &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  document.body.classList.add("is-loading");
+  if (lenis) lenis.stop();
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  window.scrollTo(0, 0);
+
+  // Parked a full viewport below the fold so the whole opening stage — hero,
+  // its sub row and the marquee — can ride the curtain up as one piece. Only
+  // ever applied when we know we can animate it back.
+  const stage = document.getElementById("heroStage");
+  const rising = stage ? [stage] : [];
+  const navWrapper = document.querySelector(".navbar-wrapper");
+  if (animated) {
+    gsap.set(rising, { y: () => window.innerHeight });
+    if (navWrapper) gsap.set(navWrapper, { y: -24, opacity: 0 });
+  }
+
+  let i = 0;
+  const cycle = setInterval(() => {
+    i = (i + 1) % GREETINGS.length;
+    word.textContent = GREETINGS[i];
+  }, WORD_MS);
+
+  function setBend(value) {
+    bendPath.setAttribute("d", `M 0,0 L 1440,0 Q 720,${value} 0,0 Z`);
+  }
+  setBend(0);
+
+  let finished = false;
+  function finish() {
+    if (finished) return;
+    finished = true;
+    clearInterval(cycle);
+
+    const release = () => {
+      root.remove();
+      document.body.classList.remove("is-loading");
+      window.scrollTo(0, 0);
+      if (lenis) {
+        lenis.start();
+        lenis.scrollTo(0, { immediate: true });
+      }
+      if (typeof ScrollTrigger !== "undefined") ScrollTrigger.refresh();
+    };
+
+    if (!animated) {
+      release();
+      return;
+    }
+
+    const bend = { value: 0 };
+    const drawBend = () => setBend(bend.value);
+
+    gsap
+      .timeline({ onComplete: release })
+      .to(word, { opacity: 0, y: -24, duration: 0.35, ease: "power2.in" })
+      // The arc bows out first, so the curtain leads with its curve...
+      .to(bend, { value: BEND, duration: 0.35, ease: "power2.out", onUpdate: drawBend }, "-=0.15")
+      .to(panel, { yPercent: -100, y: -250, duration: 1.1, ease: "power3.inOut" }, "<")
+      // Identical timing and ease to the curtain, so the hero rides up with
+      // it rather than trailing behind on its own curve.
+      .to(rising, { y: 0, duration: 1.1, ease: "power3.inOut", clearProps: "transform" }, "<")
+      // ...and the arc flattens again as the last of the curtain clears the top.
+      .to(bend, { value: 0, duration: 0.55, ease: "power2.in", onUpdate: drawBend }, "-=0.55")
+      .to(
+        navWrapper,
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power2.out",
+          clearProps: "transform,opacity",
+        },
+        "-=0.4"
+      );
+  }
+
+  const startedAt = performance.now();
+  const onReady = () =>
+    setTimeout(finish, Math.max(0, MIN_MS - (performance.now() - startedAt)));
+
+  if (document.readyState === "complete") onReady();
+  else window.addEventListener("load", onReady, { once: true });
+  setTimeout(finish, MAX_MS);
+}
 
 /* ==========================================================================
    Framer-Grade Navbar Scroll Transition with Hysteresis & rAF
@@ -262,16 +382,115 @@ function initSmoothScroll() {
 
   // Smooth scroll for nav links and all anchor jumps
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    // Project cards are anchors only as a no-JS fallback; a click opens the
+    // lightbox instead (see initProjectLightbox), so they must not be
+    // treated as a section jump.
+    if (anchor.classList.contains("project-media-card")) return;
+
     anchor.addEventListener("click", function (e) {
       const href = this.getAttribute("href");
       if (!href || href === "#") return;
       const target = document.querySelector(href);
       if (target) {
         e.preventDefault();
-        lenis.scrollTo(target, { offset: 0, duration: 1.4 });
+        jumpToSection(target);
       }
     });
   });
+}
+
+/* ==========================================================================
+   Section Jump Curtain — scrolling a menu link all the way to its section
+   races every scrub animation in between past the visitor. Instead, wipe a
+   curtain up over the page and make the jump behind it — but land a little
+   short of the section, so that once the curtain lifts the last stretch can
+   be scrolled normally and the section's own reveal still plays.
+   ========================================================================== */
+let jumpInProgress = false;
+
+function jumpToSection(target) {
+  const curtain = document.getElementById("pageCurtain");
+  const panel = document.getElementById("pageCurtainPanel");
+  const label = document.getElementById("pageCurtainLabel");
+  const bendTopPath = document.getElementById("pageCurtainBendTop");
+  const bendBottomPath = document.getElementById("pageCurtainBendBottom");
+  const canAnimate =
+    typeof gsap !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (!curtain || !panel || !canAnimate) {
+    if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.4 });
+    else window.scrollTo(0, window.scrollY + target.getBoundingClientRect().top);
+    return;
+  }
+  if (jumpInProgress) return;
+  jumpInProgress = true;
+
+  if (label) {
+    label.textContent = (target.id || "")
+      .split("-")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  }
+
+  const BEND = 230; // peak of the leading/trailing arc, in viewBox units
+  const bend = { value: 0 };
+  const drawBends = () => {
+    bendTopPath.setAttribute("d", `M 0,240 L 1440,240 Q 720,${240 - bend.value} 0,240 Z`);
+    bendBottomPath.setAttribute("d", `M 0,0 L 1440,0 Q 720,${bend.value} 0,0 Z`);
+  };
+  drawBends();
+
+  curtain.classList.add("is-active");
+  if (lenis) lenis.stop();
+
+  let destination = 0;
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      curtain.classList.remove("is-active");
+      gsap.set(panel, { clearProps: "transform" });
+      jumpInProgress = false;
+    },
+  });
+
+  tl.set(panel, { yPercent: 100, y: 240 })
+    .set(label, { opacity: 0, y: 30 })
+    .addLabel("cover")
+    // Cover. The arc swells through the middle of the sweep and flattens as
+    // the curtain settles, rather than popping out before it moves.
+    .to(panel, { yPercent: 0, y: 0, duration: 0.85, ease: "power3.inOut" }, "cover")
+    .to(bend, { value: BEND, duration: 0.42, ease: "power2.out", onUpdate: drawBends }, "cover")
+    .to(bend, { value: 0, duration: 0.43, ease: "power2.in", onUpdate: drawBends }, "cover+=0.42")
+    .to(label, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, "cover+=0.35")
+    .addLabel("covered", "cover+=0.85")
+    // Covered: hop to just short of the section, leaving its reveal to play.
+    .add(() => {
+      destination = window.scrollY + target.getBoundingClientRect().top;
+      const runway = Math.min(window.innerHeight * 0.6, 520);
+      const landing = Math.max(0, destination - runway);
+      // `force` matters: Lenis is stopped while the curtain is down, and a
+      // stopped instance ignores scrollTo without it.
+      if (lenis) lenis.scrollTo(landing, { immediate: true, force: true });
+      else window.scrollTo(0, landing);
+      if (typeof ScrollTrigger !== "undefined") ScrollTrigger.update();
+    }, "covered")
+    .addLabel("uncover", "covered+=0.45")
+    // Reveal, with the arc swelling and flattening the same way.
+    .to(label, { opacity: 0, y: -30, duration: 0.4, ease: "power2.in" }, "uncover")
+    .to(panel, { yPercent: -100, y: -240, duration: 0.95, ease: "power3.inOut" }, "uncover+=0.15")
+    .to(bend, { value: BEND, duration: 0.47, ease: "power2.out", onUpdate: drawBends }, "uncover+=0.15")
+    .to(bend, { value: 0, duration: 0.48, ease: "power2.in", onUpdate: drawBends }, "uncover+=0.62")
+    // Uncovered: only now cover the runway, so the section's reveal plays in
+    // full view rather than behind the curtain.
+    .add(() => {
+      if (lenis) {
+        lenis.start();
+        lenis.scrollTo(destination, { duration: 1.4 });
+      } else {
+        window.scrollTo({ top: destination, behavior: "smooth" });
+      }
+    }, "uncover+=1.1");
 }
 
 /* ==========================================================================
@@ -730,20 +949,52 @@ function initTechWheel() {
 }
 
 /* ==========================================================================
-   Project Media "View" Badge — follows the cursor within each card
+   Project Media "View" Badge — pops into place under the cursor, then
+   chases it around the card.
    ========================================================================== */
 function initProjectMediaCursor() {
   const cards = document.querySelectorAll(".project-media-card");
+  const useGsap = typeof gsap !== "undefined";
 
   cards.forEach((card) => {
     const badge = card.querySelector(".project-media-view");
     if (!badge) return;
 
-    card.addEventListener("mousemove", (e) => {
+    const pointIn = (e) => {
       const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      badge.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+
+    if (!useGsap) {
+      card.addEventListener("mousemove", (e) => {
+        const { x, y } = pointIn(e);
+        badge.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      });
+      return;
+    }
+
+    // xPercent/yPercent keeps the badge centred on the cursor while x/y stay
+    // free for GSAP to tween, so the chase and the pop never overwrite each
+    // other the way a single transform string would.
+    gsap.set(badge, { xPercent: -50, yPercent: -50, scale: 0.3, opacity: 0 });
+
+    const xTo = gsap.quickTo(badge, "x", { duration: 0.35, ease: "power3.out" });
+    const yTo = gsap.quickTo(badge, "y", { duration: 0.35, ease: "power3.out" });
+
+    card.addEventListener("mouseenter", (e) => {
+      const { x, y } = pointIn(e);
+      gsap.set(badge, { x, y });
+      gsap.to(badge, { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(2.4)" });
+    });
+
+    card.addEventListener("mousemove", (e) => {
+      const { x, y } = pointIn(e);
+      xTo(x);
+      yTo(y);
+    });
+
+    card.addEventListener("mouseleave", () => {
+      gsap.to(badge, { scale: 0.4, opacity: 0, duration: 0.22, ease: "power2.in" });
     });
   });
 }
@@ -1357,18 +1608,28 @@ function initServicesHorizontalScroll() {
    ========================================================================== */
 function initFooter() {
   const clockEl = document.getElementById("footerLocalTime");
+  const heroClockEl = document.getElementById("heroLocalTime");
   const toTopBtn = document.getElementById("footerToTop");
 
-  if (clockEl) {
+  if (clockEl || heroClockEl) {
     const updateClock = () => {
       const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      const offset = -now.getTimezoneOffset() / 60;
-      const sign = offset >= 0 ? "+" : "";
-      clockEl.textContent = `${time} UTC${sign}${offset}`;
+      if (heroClockEl) {
+        heroClockEl.textContent = now.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+      if (clockEl) {
+        const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        const offset = -now.getTimezoneOffset() / 60;
+        const sign = offset >= 0 ? "+" : "";
+        clockEl.textContent = `${time} UTC${sign}${offset}`;
+      }
     };
     updateClock();
-    setInterval(updateClock, 30000);
+    setInterval(updateClock, 1000);
   }
 
   if (toTopBtn) {
