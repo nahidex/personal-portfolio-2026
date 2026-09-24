@@ -573,12 +573,12 @@ function initProjectsHorizontalScroll() {
 }
 
 /* ==========================================================================
-   Skills & Tech Stack Wheel (horizontal cascading card stack, matches
-   guillaumezhu.com's toolkit section: one colored card is active/centered/
-   full-size at a time; as the next one takes over, previous cards recede to
-   the left into an overlapping, individually-rotated pile, pinned and driven
-   continuously by scroll — same "focus lens" technique as the testimonials
-   section, just horizontal instead of vertical)
+   Skills & Tech Stack — two hands of playing cards sharing one spot. The
+   section pins and the yellow Development card arrives first, slides left to
+   open a hand, and its tools are dealt in one per scroll step. The hand then
+   closes into a stack and turns over onto the red Design card, which slides
+   left in turn so its own tools can be dealt on top and closed again.
+   Hovering lifts a card out of the hand (CSS).
    ========================================================================== */
 function initTechWheel() {
   const wheel = document.getElementById("techWheel");
@@ -588,14 +588,112 @@ function initTechWheel() {
 
   gsap.registerPlugin(ScrollTrigger);
 
-  const slots = Array.from(wheel.querySelectorAll(".tech-wheel-slot"));
-  const N = slots.length;
-  const LANE_STEP = 46; // px each successive card's "home" position sits to the right of the previous
-  // Deterministic small per-card rotation for a scattered-playing-cards look
-  const cardAngle = (i) => (((i * 37) % 11) - 5) * 1.1;
-
-  // Heading reveal as the section scrolls into view
+  const devTitle = wheel.querySelector('[data-deck="dev-title"]');
+  const devTools = Array.from(wheel.querySelectorAll('[data-deck="dev"]'));
+  const designTitle = wheel.querySelector('[data-deck="design-title"]');
+  const designTools = Array.from(wheel.querySelectorAll('[data-deck="design"]'));
   const container = section.querySelector(".tech-stack-container");
+  if (!devTitle || !designTitle || !devTools.length || !designTools.length) return;
+
+  const devLen = devTools.length + 1;
+  const designLen = designTools.length + 1;
+
+  // Scroll budget for each beat of the choreography, in pixels of pinned
+  // scroll; `phase()` turns the overall progress into a local 0..1 for one.
+  const PHASES = [
+    ["devTitle", 320],
+    ["devShift", 380],
+    ["devDeal", devTools.length * 130],
+    ["devMerge", 650],
+    ["flip", 600],
+    ["designShift", 420],
+    ["designDeal", designTools.length * 130],
+    ["designMerge", 650],
+  ];
+  const bounds = {};
+  let TOTAL_PX = 0;
+  PHASES.forEach(([name, px]) => {
+    bounds[name] = [TOTAL_PX, TOTAL_PX + px];
+    TOTAL_PX += px;
+  });
+  const phase = (name, progress) => {
+    const [from, to] = bounds[name];
+    return gsap.utils.clamp(0, 1, (progress * TOTAL_PX - from) / (to - from));
+  };
+
+  // The design hand sits over the (by then face-down) development hand.
+  devTitle.style.setProperty("--card-z", "0");
+  devTools.forEach((slot, i) => slot.style.setProperty("--card-z", String(1 + i)));
+  designTitle.style.setProperty("--card-z", "20");
+  designTools.forEach((slot, i) => slot.style.setProperty("--card-z", String(21 + i)));
+
+  // The fan is formed purely by rotation around each slot's far-below origin
+  // (see .tech-wheel-slot in styles.css); a tighter angle keeps the whole
+  // hand on screen when the viewport is narrow.
+  let stepDeg = 4.1;
+  function measure() {
+    stepDeg = window.innerWidth < 640 ? 2.2 : 4.1;
+  }
+
+  const dealEase = gsap.parseEase("power3.out");
+  const mergeEase = gsap.parseEase("power2.inOut");
+
+  // `spread` opens the hand out from the single centred card; `merge` closes
+  // it back up again.
+  function place(slot, index, handLen, e, spread, merge, extra) {
+    const mid = (handLen - 1) / 2;
+    gsap.set(slot, {
+      rotation: (index - mid) * stepDeg * e * spread * (1 - merge),
+      y: (1 - e) * 240,
+      opacity: e,
+      // Scaling happens about the far-below fan pivot, so any scale other
+      // than 1 also shifts the card up the arc; a closed hand therefore has
+      // to sit at exactly 1 or it won't line up with the flipped-to card.
+      scale: 0.86 + 0.14 * e,
+      ...extra,
+    });
+  }
+
+  function render(progress) {
+    const devSpread = mergeEase(phase("devShift", progress));
+    const devMerge = mergeEase(phase("devMerge", progress));
+    const flip = mergeEase(phase("flip", progress));
+    const designSpread = mergeEase(phase("designShift", progress));
+    const designMerge = mergeEase(phase("designMerge", progress));
+
+    // Turning the dev hand past 90 degrees hides it (the cards are
+    // backface-hidden) exactly as the Design card swings into view.
+    const facing = { rotationY: -180 * flip };
+
+    place(devTitle, 0, devLen, dealEase(phase("devTitle", progress)), devSpread, devMerge, facing);
+    const devDealt = phase("devDeal", progress) * devTools.length;
+    devTools.forEach((slot, i) => {
+      const e = dealEase(gsap.utils.clamp(0, 1, devDealt - i));
+      place(slot, i + 1, devLen, e, devSpread, devMerge, facing);
+    });
+
+    // The Design card is revealed by the flip rather than dealt, so it holds
+    // a full deal factor and only its Y rotation changes.
+    place(designTitle, 0, designLen, 1, designSpread, designMerge, {
+      rotationY: 180 - 180 * flip,
+    });
+    const designDealt = phase("designDeal", progress) * designTools.length;
+    designTools.forEach((slot, i) => {
+      const e = dealEase(gsap.utils.clamp(0, 1, designDealt - i));
+      place(slot, i + 1, designLen, e, 1, designMerge);
+    });
+
+    const stacked = Math.max(devMerge * (1 - flip), designMerge);
+    wheel.style.setProperty("--shadow-strength", (1 - 0.85 * stacked).toFixed(3));
+  }
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    gsap.set(container, { opacity: 1, y: 0 });
+    measure();
+    render(bounds.devDeal[1] / TOTAL_PX);
+    return;
+  }
+
   if (container) {
     gsap.fromTo(
       container,
@@ -603,63 +701,31 @@ function initTechWheel() {
       {
         opacity: 1,
         y: 0,
-        ease: "power2.out",
+        duration: 0.8,
+        ease: "power3.out",
         scrollTrigger: {
           trigger: section,
-          start: "top 85%",
-          end: "top 50%",
-          scrub: 0.6,
-          invalidateOnRefresh: true,
+          start: "top 80%",
+          once: true,
         },
       }
     );
   }
 
-  function layoutCards(focus) {
-    slots.forEach((slot, i) => {
-      const distance = i - focus;
-      const isActive = Math.abs(distance) < 0.02;
-      const scale = isActive ? 1 : 0.9;
-      const opacity = distance > 0.5 ? 0 : 1; // not-yet-reached cards stay hidden off to the right
-      // The whole lane shifts left as focus advances, keeping the focused
-      // card's "home" position centered at x:0 — already-active cards drift
-      // further left (retired into the pile) the more the focus moves on.
-      const x = (i - focus) * LANE_STEP;
-      gsap.set(slot, {
-        x,
-        y: isActive ? -14 : 0,
-        scale,
-        opacity,
-        rotate: isActive ? 0 : cardAngle(i),
-        zIndex: i,
-      });
-    });
-  }
+  measure();
+  render(0);
 
-  gsap.set(slots, { opacity: 0 });
-  layoutCards(0);
-
-  const focusState = { value: 0 };
-  const PX_PER_CARD = 260;
-  const pinDistance = (N - 1) * PX_PER_CARD;
-
-  const wheelTl = gsap.timeline({
-    scrollTrigger: {
-      trigger: section,
-      start: "top top",
-      end: "+=" + pinDistance,
-      pin: true,
-      pinSpacing: true,
-      pinType: "fixed",
-      scrub: 0.6,
-      invalidateOnRefresh: true,
-    },
-  });
-  wheelTl.to(focusState, {
-    value: N - 1,
-    ease: "none",
-    duration: 1,
-    onUpdate: () => layoutCards(focusState.value),
+  ScrollTrigger.create({
+    trigger: section,
+    start: "top top",
+    end: "+=" + TOTAL_PX,
+    pin: true,
+    pinSpacing: true,
+    pinType: "fixed",
+    scrub: 0.5,
+    invalidateOnRefresh: true,
+    onRefresh: measure,
+    onUpdate: (self) => render(self.progress),
   });
 }
 
@@ -972,9 +1038,18 @@ function initTestimonialsScroll() {
       invalidateOnRefresh: true,
     },
   });
-  colorTl.fromTo(bgTarget, { backgroundColor: "#ffffff" }, { backgroundColor: "#000000", ease: "none", duration: darkenDur }, 0);
+  colorTl.fromTo(
+    bgTarget,
+    { backgroundColor: "#ffffff" },
+    { backgroundColor: "#000000", ease: "none", duration: darkenDur },
+    0
+  );
   // (implicit hold at black through the pin — no tween needed, it just stays)
-  colorTl.to(bgTarget, { backgroundColor: "#ffffff", ease: "none", duration: fadeOutDur }, pinReleasePoint);
+  colorTl.to(
+    bgTarget,
+    { backgroundColor: "#ffffff", ease: "none", duration: fadeOutDur },
+    pinReleasePoint
+  );
   let currentIndex = -1;
   let revealTl = null;
 
@@ -1009,7 +1084,11 @@ function initTestimonialsScroll() {
 
     revealTl = gsap.timeline();
     // Tag: reveals left-to-right with opacity
-    revealTl.fromTo(tagEl, { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" });
+    revealTl.fromTo(
+      tagEl,
+      { opacity: 0, x: -16 },
+      { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" }
+    );
     // Quote: word-by-word, blurred -> sharp (settles into focus like sand)
     revealTl.fromTo(
       words,

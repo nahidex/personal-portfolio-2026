@@ -501,7 +501,13 @@
               <div class="testimonial-footer">
                 <div class="testimonial-person" id="testimonialPerson">
                   <span class="testimonial-person-rule"></span>
-                  <img class="testimonial-avatar" id="testimonialAvatar" src="" alt="" loading="lazy" />
+                  <img
+                    class="testimonial-avatar"
+                    id="testimonialAvatar"
+                    src=""
+                    alt=""
+                    loading="lazy"
+                  />
                   <div class="testimonial-person-info">
                     <h3 class="testimonial-name" id="testimonialName"></h3>
                     <span class="testimonial-role" id="testimonialRole"></span>
@@ -509,14 +515,36 @@
                 </div>
 
                 <div class="testimonial-nav" aria-hidden="true">
-                  <button type="button" class="testimonial-nav-btn" id="testimonialPrev" aria-label="Previous testimonial">
+                  <button
+                    type="button"
+                    class="testimonial-nav-btn"
+                    id="testimonialPrev"
+                    aria-label="Previous testimonial"
+                  >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      <path
+                        d="M15 18l-6-6 6-6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
                     </svg>
                   </button>
-                  <button type="button" class="testimonial-nav-btn" id="testimonialNext" aria-label="Next testimonial">
+                  <button
+                    type="button"
+                    class="testimonial-nav-btn"
+                    id="testimonialNext"
+                    aria-label="Next testimonial"
+                  >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      <path
+                        d="M9 18l6-6-6-6"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -524,223 +552,367 @@
             </div>
           </div>
 
-      <!-- Services & Expertise Section -->
-      <section id="services" class="services-section" aria-label="Services and Expertise">
-        <div class="services-container">
-          <!-- Statement Heading -->
-          <div class="services-header">
-            <h2 class="services-statement">
-              Transforming ideas into exceptional digital<br />
-              experiences through expertise and innovation
-            </h2>
-          </div>
-        </div>
-
-        <!-- Cards scroll horizontally (right to left) as the user scrolls vertically -->
-        <div class="services-cards-section" id="servicesCardsSection">
-          <div class="services-horizontal-wrapper">
-            <div class="services-grid" id="servicesTrack">
-              <!-- Card 01: Full Stack Development -->
-              <article class="service-card">
-                <div class="service-card-glow" aria-hidden="true"></div>
-                <div class="service-card-top">
-                  <div class="service-icon-circle" aria-hidden="true">
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
-                      <line x1="9" y1="3" x2="9" y2="18"></line>
-                      <line x1="15" y1="6" x2="15" y2="21"></line>
-                    </svg>
-                  </div>
-                  <span class="service-number">01</span>
-                </div>
-                <div class="service-card-mid">
-                  <h3 class="service-title">Full Stack<br />Development</h3>
-                </div>
-                <hr class="service-divider" />
-                <div class="service-card-bot">
-                  <p class="service-description">
-                    Building scalable and high-performance web applications using Next.js, React,
-                    Node.js, and TypeScript, with robust backend architectures, secure RESTful APIs,
-                    and clean code practices.
-                  </p>
-                </div>
-              </article>
-
-              <!-- Card 02: UI/UX Design & Frontend -->
-              <article class="service-card">
-                <div class="service-card-glow" aria-hidden="true"></div>
-                <div class="service-card-top">
-                  <div class="service-icon-circle" aria-hidden="true">
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
-                      <line x1="3" y1="9" x2="21" y2="9"></line>
-                      <line x1="9" y1="21" x2="9" y2="9"></line>
-                      <circle cx="6.5" cy="6" r="1" fill="currentColor"></circle>
-                    </svg>
-                  </div>
-                  <span class="service-number">02</span>
-                </div>
-                <div class="service-card-mid">
-                  <h3 class="service-title">UI/UX Design &<br />Frontend</h3>
-                </div>
-                <hr class="service-divider" />
-                <div class="service-card-bot">
-                  <p class="service-description">
-                    Designing modern, responsive interfaces with Figma, Tailwind CSS, and Framer
-                    Motion. Creating intuitive experiences with clean design systems and
-                    pixel-perfect implementations.
-                  </p>
-                </div>
-              </article>
-
-              <!-- Card 03: SaaS Platform Development -->
-              <article class="service-card">
-                <div class="service-card-glow" aria-hidden="true"></div>
-                <div class="service-card-top">
-                  <div class="service-icon-circle" aria-hidden="true">
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-                      ></path>
-                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                    </svg>
-                  </div>
-                  <span class="service-number">03</span>
-                </div>
-                <div class="service-card-mid">
-                  <h3 class="service-title">SaaS Platform<br />Development</h3>
-                </div>
-                <hr class="service-divider" />
-                <div class="service-card-bot">
-                  <p class="service-description">
-                    Developing end-to-end SaaS solutions with subscription systems, Stripe billing,
-                    and multi-tenant management. Ensuring scalability and secure user management.
-                  </p>
-                </div>
-              </article>
-
-              <!-- Card 04: API & System Architecture -->
-              <article class="service-card">
-                <div class="service-card-glow" aria-hidden="true"></div>
-                <div class="service-card-top">
-                  <div class="service-icon-circle" aria-hidden="true">
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="2" y="2" width="6" height="6" rx="1.5"></rect>
-                      <rect x="16" y="2" width="6" height="6" rx="1.5"></rect>
-                      <rect x="16" y="16" width="6" height="6" rx="1.5"></rect>
-                      <rect x="2" y="16" width="6" height="6" rx="1.5"></rect>
-                      <line x1="5" y1="8" x2="5" y2="16"></line>
-                      <line x1="19" y1="8" x2="19" y2="16"></line>
-                      <line x1="8" y1="5" x2="16" y2="5"></line>
-                      <line x1="8" y1="19" x2="16" y2="19"></line>
-                    </svg>
-                  </div>
-                  <span class="service-number">04</span>
-                </div>
-                <div class="service-card-mid">
-                  <h3 class="service-title">API & System<br />Architecture</h3>
-                </div>
-                <hr class="service-divider" />
-                <div class="service-card-bot">
-                  <p class="service-description">
-                    Designing maintainable APIs with PostgreSQL, Prisma, and MongoDB. Focusing on
-                    performance optimization, security best practices, and reliable data flow.
-                  </p>
-                </div>
-              </article>
+          <!-- Services & Expertise Section -->
+          <section id="services" class="services-section" aria-label="Services and Expertise">
+            <div class="services-container">
+              <!-- Statement Heading -->
+              <div class="services-header">
+                <h2 class="services-statement">
+                  Transforming ideas into exceptional digital<br />
+                  experiences through expertise and innovation
+                </h2>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Skills & Tech Stack Section -->
-      <section id="tech-stack" class="tech-stack-section" aria-label="Skills and Tech Stack">
-        <div class="tech-stack-container">
-          <span class="tech-stack-eyebrow">Toolkit</span>
-          <h2 class="tech-stack-title">Skills &amp; Tech Stack</h2>
-        </div>
-        <div class="tech-wheel" id="techWheel">
-          <div class="tech-wheel-slot" style="--card-bg: #1a2233; --card-fg: #61dafb">
-            <div class="tech-wheel-card"><span class="tech-card-name">React</span><span class="tech-card-tag">Library</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #000000; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">Next.js</span><span class="tech-card-tag">Framework</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #3178c6; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">TypeScript</span><span class="tech-card-tag">Language</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #3c873a; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">Node.js</span><span class="tech-card-tag">Runtime</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #38bdf8; --card-fg: #0b2530">
-            <div class="tech-wheel-card"><span class="tech-card-name">Tailwind CSS</span><span class="tech-card-tag">Styling</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #f5f5f5; --card-fg: #111111">
-            <div class="tech-wheel-card"><span class="tech-card-name">Figma</span><span class="tech-card-tag">Design</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #0a0a0a; --card-fg: #ff2e88">
-            <div class="tech-wheel-card"><span class="tech-card-name">Framer Motion</span><span class="tech-card-tag">Animation</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #111111; --card-fg: #88ce02">
-            <div class="tech-wheel-card"><span class="tech-card-name">GSAP</span><span class="tech-card-tag">Motion Lib</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #336791; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">PostgreSQL</span><span class="tech-card-tag">Database</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #16171a; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">Prisma</span><span class="tech-card-tag">ORM</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #47a248; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">MongoDB</span><span class="tech-card-tag">Database</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #635bff; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">Stripe</span><span class="tech-card-tag">Payments</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #2b2b2b; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">REST APIs</span><span class="tech-card-tag">Architecture</span></div>
-          </div>
-          <div class="tech-wheel-slot" style="--card-bg: #646cff; --card-fg: #ffffff">
-            <div class="tech-wheel-card"><span class="tech-card-name">Vite</span><span class="tech-card-tag">Build Tool</span></div>
-          </div>
-        </div>
-      </section>
+            <!-- Cards scroll horizontally (right to left) as the user scrolls vertically -->
+            <div class="services-cards-section" id="servicesCardsSection">
+              <div class="services-horizontal-wrapper">
+                <div class="services-grid" id="servicesTrack">
+                  <!-- Card 01: Full Stack Development -->
+                  <article class="service-card">
+                    <div class="service-card-glow" aria-hidden="true"></div>
+                    <div class="service-card-top">
+                      <div class="service-icon-circle" aria-hidden="true">
+                        <svg
+                          width="26"
+                          height="26"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                          <line x1="9" y1="3" x2="9" y2="18"></line>
+                          <line x1="15" y1="6" x2="15" y2="21"></line>
+                        </svg>
+                      </div>
+                      <span class="service-number">01</span>
+                    </div>
+                    <div class="service-card-mid">
+                      <h3 class="service-title">Full Stack<br />Development</h3>
+                    </div>
+                    <hr class="service-divider" />
+                    <div class="service-card-bot">
+                      <p class="service-description">
+                        Building scalable and high-performance web applications using Next.js,
+                        React, Node.js, and TypeScript, with robust backend architectures, secure
+                        RESTful APIs, and clean code practices.
+                      </p>
+                    </div>
+                  </article>
+
+                  <!-- Card 02: UI/UX Design & Frontend -->
+                  <article class="service-card">
+                    <div class="service-card-glow" aria-hidden="true"></div>
+                    <div class="service-card-top">
+                      <div class="service-icon-circle" aria-hidden="true">
+                        <svg
+                          width="26"
+                          height="26"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+                          <line x1="3" y1="9" x2="21" y2="9"></line>
+                          <line x1="9" y1="21" x2="9" y2="9"></line>
+                          <circle cx="6.5" cy="6" r="1" fill="currentColor"></circle>
+                        </svg>
+                      </div>
+                      <span class="service-number">02</span>
+                    </div>
+                    <div class="service-card-mid">
+                      <h3 class="service-title">UI/UX Design &<br />Frontend</h3>
+                    </div>
+                    <hr class="service-divider" />
+                    <div class="service-card-bot">
+                      <p class="service-description">
+                        Designing modern, responsive interfaces with Figma, Tailwind CSS, and Framer
+                        Motion. Creating intuitive experiences with clean design systems and
+                        pixel-perfect implementations.
+                      </p>
+                    </div>
+                  </article>
+
+                  <!-- Card 03: SaaS Platform Development -->
+                  <article class="service-card">
+                    <div class="service-card-glow" aria-hidden="true"></div>
+                    <div class="service-card-top">
+                      <div class="service-icon-circle" aria-hidden="true">
+                        <svg
+                          width="26"
+                          height="26"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path
+                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                          ></path>
+                          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                      </div>
+                      <span class="service-number">03</span>
+                    </div>
+                    <div class="service-card-mid">
+                      <h3 class="service-title">SaaS Platform<br />Development</h3>
+                    </div>
+                    <hr class="service-divider" />
+                    <div class="service-card-bot">
+                      <p class="service-description">
+                        Developing end-to-end SaaS solutions with subscription systems, Stripe
+                        billing, and multi-tenant management. Ensuring scalability and secure user
+                        management.
+                      </p>
+                    </div>
+                  </article>
+
+                  <!-- Card 04: API & System Architecture -->
+                  <article class="service-card">
+                    <div class="service-card-glow" aria-hidden="true"></div>
+                    <div class="service-card-top">
+                      <div class="service-icon-circle" aria-hidden="true">
+                        <svg
+                          width="26"
+                          height="26"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <rect x="2" y="2" width="6" height="6" rx="1.5"></rect>
+                          <rect x="16" y="2" width="6" height="6" rx="1.5"></rect>
+                          <rect x="16" y="16" width="6" height="6" rx="1.5"></rect>
+                          <rect x="2" y="16" width="6" height="6" rx="1.5"></rect>
+                          <line x1="5" y1="8" x2="5" y2="16"></line>
+                          <line x1="19" y1="8" x2="19" y2="16"></line>
+                          <line x1="8" y1="5" x2="16" y2="5"></line>
+                          <line x1="8" y1="19" x2="16" y2="19"></line>
+                        </svg>
+                      </div>
+                      <span class="service-number">04</span>
+                    </div>
+                    <div class="service-card-mid">
+                      <h3 class="service-title">API & System<br />Architecture</h3>
+                    </div>
+                    <hr class="service-divider" />
+                    <div class="service-card-bot">
+                      <p class="service-description">
+                        Designing maintainable APIs with PostgreSQL, Prisma, and MongoDB. Focusing
+                        on performance optimization, security best practices, and reliable data
+                        flow.
+                      </p>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Skills & Tech Stack Section -->
+          <section id="tech-stack" class="tech-stack-section" aria-label="Skills and Tech Stack">
+            <div class="tech-stack-container">
+              <span class="tech-stack-eyebrow">Toolkit</span>
+              <h2 class="tech-stack-title">Skills &amp; Tech Stack</h2>
+            </div>
+            <div class="tech-wheel" id="techWheel">
+              <!-- Deck 1: development, dealt out then closed and flipped over -->
+              <div
+                class="tech-wheel-slot tech-wheel-slot--title"
+                data-deck="dev-title"
+                style="--card-bg: #f5c518; --card-fg: #1a1400"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Development</span
+                  ><span class="tech-card-tag">What I build with</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #1a2233; --card-fg: #61dafb"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">React</span
+                  ><span class="tech-card-tag">Library</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #000000; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Next.js</span
+                  ><span class="tech-card-tag">Framework</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #3178c6; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">TypeScript</span
+                  ><span class="tech-card-tag">Language</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #3c873a; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Node.js</span
+                  ><span class="tech-card-tag">Runtime</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #336791; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">PostgreSQL</span
+                  ><span class="tech-card-tag">Database</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #16171a; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Prisma</span><span class="tech-card-tag">ORM</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #47a248; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">MongoDB</span
+                  ><span class="tech-card-tag">Database</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #635bff; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Stripe</span
+                  ><span class="tech-card-tag">Payments</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #2b2b2b; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">REST APIs</span
+                  ><span class="tech-card-tag">Architecture</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="dev"
+                style="--card-bg: #646cff; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Vite</span
+                  ><span class="tech-card-tag">Build Tool</span>
+                </div>
+              </div>
+
+              <!-- Deck 2: the face the dev stack turns over onto, then its tools -->
+              <div
+                class="tech-wheel-slot tech-wheel-slot--title"
+                data-deck="design-title"
+                style="--card-bg: #e0192b; --card-fg: #ffffff"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Design</span
+                  ><span class="tech-card-tag">The other half</span>
+                </div>
+              </div>
+
+              <!-- Deck 2: design tools, dealt on top of the Design card -->
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #f5f5f5; --card-fg: #111111"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Figma</span
+                  ><span class="tech-card-tag">Interface</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #38bdf8; --card-fg: #0b2530"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Tailwind CSS</span
+                  ><span class="tech-card-tag">Styling</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #0a0a0a; --card-fg: #ff2e88"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Framer Motion</span
+                  ><span class="tech-card-tag">Animation</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #111111; --card-fg: #88ce02"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">GSAP</span
+                  ><span class="tech-card-tag">Motion Lib</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #1c1c1e; --card-fg: #ffd166"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Design Systems</span
+                  ><span class="tech-card-tag">Method</span>
+                </div>
+              </div>
+              <div
+                class="tech-wheel-slot"
+                data-deck="design"
+                style="--card-bg: #fef3c7; --card-fg: #7c2d12"
+              >
+                <div class="tech-wheel-card">
+                  <span class="tech-card-name">Prototyping</span
+                  ><span class="tech-card-tag">Motion</span>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
