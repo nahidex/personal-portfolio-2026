@@ -955,6 +955,8 @@ function initTestimonialsScroll() {
   const personEl = document.getElementById("testimonialPerson");
   const prevBtn = document.getElementById("testimonialPrev");
   const nextBtn = document.getElementById("testimonialNext");
+  const progressCountEl = document.getElementById("testimonialProgressCount");
+  const progressTrackEl = document.getElementById("testimonialProgressTrack");
 
   if (!section || !tagEl || !quoteEl) return;
   if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
@@ -999,6 +1001,30 @@ function initTestimonialsScroll() {
   const N = testimonials.length;
   const PX_PER_STEP = 900; // scroll pixels needed to advance one testimonial (shared with the pin below)
   const pinDistance = (N - 1) * PX_PER_STEP;
+
+  // One segment per testimonial. The position runs 0 .. N, where the whole
+  // number is the slide on screen and the fraction is how far through it we
+  // are — so every segment, the first one included, fills like a loader.
+  const steps = [];
+  if (progressTrackEl) {
+    for (let i = 0; i < N; i++) {
+      const step = document.createElement("span");
+      step.className = "testimonial-progress-step";
+      progressTrackEl.appendChild(step);
+      steps.push(step);
+    }
+  }
+
+  function setProgress(position) {
+    steps.forEach((step, i) => {
+      step.style.setProperty("--fill", gsap.utils.clamp(0, 1, position - i).toFixed(3));
+    });
+    if (progressCountEl) {
+      const shown = Math.min(N, Math.floor(position) + 1);
+      progressCountEl.textContent =
+        String(shown).padStart(2, "0") + " / " + String(N).padStart(2, "0");
+    }
+  }
 
   // ONE unified white -> black -> white timeline on the shared works-reveal
   // container, covering testimonials' approach all the way through Services'
@@ -1113,9 +1139,37 @@ function initTestimonialsScroll() {
     renderSlide(currentIndex, true);
   }
 
+  // The carousel runs off a single position in slide units, and autoplay and
+  // scrolling both simply move it: the ticker creeps it forward every frame
+  // while a scroll adds its own (far larger) delta on top. Nothing has to be
+  // paused or locked out — while the visitor scrolls their input naturally
+  // outweighs the creep, and the moment they stop it carries on by itself.
+  const AUTO_SEC = 4.5; // seconds a testimonial is held before advancing
+  const MAX_POS = N - 0.001; // scrolling stops on the last slide rather than wrapping
+  const state = { pos: 0 };
+  let inView = false;
+
+  function applyPosition(pos) {
+    state.pos = pos;
+    setProgress(pos);
+    goToIndex(Math.min(N - 1, Math.floor(pos)));
+  }
+
+  function nudgeTo(pos) {
+    applyPosition(gsap.utils.clamp(0, MAX_POS, pos));
+  }
+
+  gsap.ticker.add((time, deltaMs) => {
+    if (!inView || document.hidden) return;
+    // Cap the delta so a backgrounded tab doesn't jump several slides at once.
+    const next = state.pos + Math.min(deltaMs, 100) / 1000 / AUTO_SEC;
+    applyPosition(next >= N ? 0 : next);
+  });
+
   // First slide appears instantly (no animation) as soon as it's built
   goToIndex(0);
   renderSlide(0, false);
+  setProgress(0);
 
   // Item-by-item reveal (same technique as the About section's initTextReveal:
   // a single scrubbed timeline that reveals each piece in sequence with
@@ -1152,10 +1206,29 @@ function initTestimonialsScroll() {
     entranceTl.to(footerBlock, { opacity: 1, y: 0, duration: 1.2, ease: "sine.out" }, "+=0.2");
   }
 
-  prevBtn && prevBtn.addEventListener("click", () => goToIndex(currentIndex - 1));
-  nextBtn && nextBtn.addEventListener("click", () => goToIndex(currentIndex + 1));
+  prevBtn && prevBtn.addEventListener("click", () => nudgeTo(Math.floor(state.pos) - 1));
+  nextBtn && nextBtn.addEventListener("click", () => nudgeTo(Math.floor(state.pos) + 1));
+
+  // Autoplay only creeps while the section is actually on screen. An
+  // IntersectionObserver is used rather than a ScrollTrigger because the
+  // pinned section becomes position: fixed, which puts its scroll-based
+  // bounds nowhere near where it is actually visible.
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(
+      (entries) => {
+        inView = entries[0].isIntersecting;
+      },
+      { threshold: 0.25 }
+    ).observe(section);
+  } else {
+    inView = true;
+  }
 
   const mm = gsap.matchMedia();
+
+  // Tracks the pin's own scroll-derived position so onUpdate can hand the
+  // carousel a delta rather than an absolute index.
+  let lastScrollPos = 0;
 
   mm.add("(min-width: 901px)", () => {
     const st = ScrollTrigger.create({
@@ -1172,9 +1245,15 @@ function initTestimonialsScroll() {
       // `self.progress` below is already enough to keep exactly one
       // testimonial showing at a time.
       invalidateOnRefresh: true,
+      onRefresh: (self) => {
+        lastScrollPos = self.progress * N;
+      },
       onUpdate: (self) => {
-        const idx = Math.round(self.progress * (N - 1));
-        goToIndex(idx);
+        const scrollPos = self.progress * N;
+        const delta = scrollPos - lastScrollPos;
+        lastScrollPos = scrollPos;
+        if (Math.abs(delta) < 0.0005) return;
+        nudgeTo(state.pos + delta);
       },
     });
 
