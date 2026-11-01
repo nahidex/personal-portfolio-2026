@@ -1159,18 +1159,17 @@ ul {
   background-image: linear-gradient(135deg, #262626 0%, #050505 100%);
 }
 
-/* More Cases — a horizontally auto-scrolling row of large portrait cards,
-   same idea as emblematica.agency's project-page carousel: it continuously
-   drifts left-to-right, each card tilting in 3D (coverflow-style) based on
-   its distance from center, and settles flat as it passes through the
-   middle. Pauses on hover/drag so it's still readable/browsable. */
+/* More Cases — a globe-like orbit of the other project thumbnails, same
+   mechanic as emblematica.agency's project-page carousel: cards travel a
+   curved arc (not a flat sideways line) as they swing around, growing and
+   flattening as they pass through center. Only the currently-centered
+   project's name is shown, below the whole orbit (not per-card). */
 .lightbox-more-cases {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
   margin-top: 1rem;
-  padding: 3rem 0;
 }
 
 .more-cases-kicker {
@@ -1181,42 +1180,60 @@ ul {
   color: rgba(255, 255, 255, 0.45);
 }
 
-.more-cases-row {
-  display: flex;
-  gap: 1.25rem;
+.more-cases-wheel {
+  position: relative;
   width: 100%;
-  overflow-x: auto;
-  perspective: 1400px;
+  height: clamp(320px, 34vw, 480px);
+  perspective: 1700px;
+  perspective-origin: 50% 45%;
   cursor: grab;
-  padding: 0 calc(50% - clamp(100px, 9.5vw, 140px));
-  scrollbar-width: none;
+  touch-action: pan-y;
+  user-select: none;
 }
 
-.more-cases-row.is-dragging {
+.more-cases-wheel.is-dragging {
   cursor: grabbing;
 }
 
-.more-cases-row::-webkit-scrollbar {
-  display: none;
+.more-cases-wheel::before,
+.more-cases-wheel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(60px, 14vw, 240px);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.more-cases-wheel::before {
+  left: 0;
+  background: linear-gradient(to right, #0a0a0a 8%, transparent);
+}
+
+.more-cases-wheel::after {
+  right: 0;
+  background: linear-gradient(to left, #0a0a0a 8%, transparent);
 }
 
 .more-cases-item {
-  flex: 0 0 auto;
-  width: clamp(200px, 19vw, 280px);
-  height: clamp(240px, 23vw, 340px);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cw);
+  height: var(--ih);
+  margin-left: calc(var(--cw) / -2);
+  margin-top: calc(var(--ih) / -2);
+  display: block;
+  border-radius: 14px;
   overflow: hidden;
-  background-color: #111111;
+  background-color: #1a1a1e;
+  background-size: cover;
+  background-position: center center;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   will-change: transform, opacity;
-}
-
-.more-cases-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  pointer-events: none;
-  -webkit-user-drag: none;
+  backface-visibility: hidden;
 }
 
 .more-cases-name {
@@ -1228,7 +1245,7 @@ ul {
     Roboto,
     sans-serif;
   font-size: clamp(1rem, 1.6vw, 1.3rem);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: #ffffff;
   text-align: center;
@@ -1236,13 +1253,8 @@ ul {
 }
 
 @media (max-width: 640px) {
-  .more-cases-row {
-    padding: 0 calc(50% - 75px);
-  }
-
-  .more-cases-item {
-    width: 150px;
-    height: 190px;
+  .more-cases-wheel {
+    height: 280px;
   }
 }
 

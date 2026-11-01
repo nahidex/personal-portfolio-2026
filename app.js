@@ -1130,144 +1130,202 @@ function initProjectLightbox() {
     fillMedia(card);
   }
 
-  // --- More Cases row -----------------------------------------------
-  // A horizontally auto-scrolling row of the OTHER projects' thumbnails,
-  // shown at the end of the case-study content — same idea as
-  // emblematica.agency's project-page carousel. It continuously drifts
-  // left-to-right (pausing on hover/drag so it stays readable/browsable),
-  // and each card tilts in 3D based on its distance from center — a plain
-  // coverflow computed from real-time `getBoundingClientRect()` positions
-  // each frame, no custom drag physics needed. Clicking a thumbnail swaps
-  // the lightbox's content to that project in place.
-  const moreCasesRow = document.getElementById("moreCasesRow");
+  // --- More Cases orbit ---------------------------------------------------
+  // Ported directly from emblematica.agency's own shipped JS — their site
+  // layers a WebGL globe on top as a progressive enhancement, but this
+  // exact per-card translate3d/rotateY/rotateZ/scale formula (read straight
+  // out of their inline script, `build()`/`layout()`/`render()`/drag/auto-
+  // rotate) is what they themselves fall back to without WebGL, so it's the
+  // most faithful replication achievable without writing a custom WebGL
+  // renderer. One addition: their WebGL path repeats a short project list
+  // around the ring so it's always densely filled (`minRing` config) — kept
+  // here too, since we only have a handful of other projects.
+  const moreCasesWheel = document.getElementById("moreCasesWheel");
   const moreCasesName = document.getElementById("moreCasesName");
-  let moreCasesItems = [];
-  let autoScrollPaused = false;
-  let autoResumeTimer = null;
-
-  const AUTO_PX_PER_FRAME = 0.6;
-  const TILT_RANGE_PX = 260;
-  const MAX_TILT_DEG = 26;
+  let ringItems = []; // { el, card } one per repeated ring slot
+  let ringN = 0;
+  let ringStep = 0;
+  let ringRadius = 0;
+  let ringRotation = 0;
+  let ringVelocity = 0;
+  let ringDragging = false;
+  let ringMoved = 0;
+  let ringHover = false;
+  let ringLastX = 0;
+  let activeRingCard = null;
+  const RING_MIN_SLOTS = 18;
+  const AUTO_DEG_PER_MS = 0.005;
+  const ARC_RATIO = 0.26; // vertical radius as a fraction of the horizontal one — this is what bends the path into a visible curved orbit instead of a flat sideways line
 
   // Dummy placeholder thumbnails (reusing the same gradient swatches as the
   // case-study content blocks above) stand in for any video-based project —
-  // the row only ever shows still images, never an embedded <video>.
+  // the ring only ever shows still images, never an embedded <video>.
   const PLACEHOLDER_CLASSES = ["placeholder-a", "placeholder-b", "placeholder-c"];
 
-  function applyCoverflow() {
-    if (!moreCasesRow || !moreCasesItems.length) return;
-    const rowRect = moreCasesRow.getBoundingClientRect();
-    const centerX = rowRect.left + rowRect.width / 2;
-    let closest = moreCasesItems[0];
+  function layoutRing() {
+    const cw = ringItems[0] ? ringItems[0].el.offsetWidth : 300;
+    ringRadius = Math.max((cw * 0.5) / Math.tan(Math.PI / ringN) * 1.06, cw * 1.25);
+  }
+
+  function setActiveRingCard(card, name) {
+    if (activeRingCard === card) return;
+    activeRingCard = card;
+    moreCasesName.textContent = name;
+    gsap.fromTo(
+      moreCasesName,
+      { opacity: 0, scale: 0.8, y: 6 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "back.out(2)" }
+    );
+  }
+
+  function renderRing() {
+    const rad = Math.PI / 180;
+    let closest = null;
     let closestDist = Infinity;
-    moreCasesItems.forEach((item) => {
-      const r = item.el.getBoundingClientRect();
-      const delta = r.left + r.width / 2 - centerX;
-      const t = gsap.utils.clamp(-1, 1, delta / TILT_RANGE_PX);
-      gsap.set(item.el, {
-        rotateY: -t * MAX_TILT_DEG,
-        scale: 1 - Math.abs(t) * 0.08,
-        opacity: 1 - Math.abs(t) * 0.55,
-      });
-      const dist = Math.abs(delta);
+    ringItems.forEach((item, i) => {
+      let a = ((i * ringStep + ringRotation) % 360 + 540) % 360 - 180;
+      const r = a * rad;
+      const c = Math.cos(r);
+      const s = Math.sin(r);
+      const el = item.el;
+      if (c < -0.15) {
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+        return;
+      }
+      const x = ringRadius * s;
+      const z = ringRadius * c - ringRadius;
+      // A real curved arc (rises through the sides, flat at center and at
+      // the far edge) — like looking at a globe's equator from a slight
+      // angle — rather than a near-flat sideways line.
+      const y = -ringRadius * ARC_RATIO * s;
+      const tilt = -s * 9;
+      const sc = 0.82 + 0.18 * Math.max(c, 0);
+      el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(2)}deg) rotateZ(${tilt.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+      el.style.opacity = String(gsap.utils.clamp(0, 1, (c + 0.15) * 3.5));
+      el.style.pointerEvents = c > 0.25 ? "auto" : "none";
+      el.style.zIndex = String(Math.round((c + 1) * 100));
+      const dist = Math.abs(a);
       if (dist < closestDist) {
         closestDist = dist;
         closest = item;
       }
     });
-    if (moreCasesName.textContent !== closest.name) moreCasesName.textContent = closest.name;
+    if (closest) setActiveRingCard(closest.card, closest.name);
   }
 
-  // One shared ticker drives both the auto-scroll drift and the coverflow
-  // tilt — registered once, not per rebuild, and a no-op whenever the
-  // lightbox is closed or the row has nothing in it.
+  let ringLastTickTime = 0;
   gsap.ticker.add(() => {
-    if (!isOpen || !moreCasesRow || !moreCasesItems.length) return;
-    if (!autoScrollPaused) {
-      const maxScroll = moreCasesRow.scrollWidth - moreCasesRow.clientWidth;
-      if (maxScroll > 0) {
-        moreCasesRow.scrollLeft += AUTO_PX_PER_FRAME;
-        if (moreCasesRow.scrollLeft >= maxScroll - 1) moreCasesRow.scrollLeft = 0;
-      }
+    if (!isOpen || !ringN) return;
+    const now = performance.now();
+    const dt = Math.min(40, ringLastTickTime ? now - ringLastTickTime : 16);
+    ringLastTickTime = now;
+    if (!ringDragging) {
+      const target = ringHover ? 0 : AUTO_DEG_PER_MS;
+      ringVelocity += (target - ringVelocity) * Math.min(1, dt * 0.004);
+      ringRotation += ringVelocity * dt;
     }
-    applyCoverflow();
+    renderRing();
   });
 
-  function pauseAutoScroll() {
-    autoScrollPaused = true;
-    clearTimeout(autoResumeTimer);
-  }
-
-  function resumeAutoScrollSoon() {
-    clearTimeout(autoResumeTimer);
-    autoResumeTimer = setTimeout(() => {
-      autoScrollPaused = false;
-    }, 600);
-  }
-
   function buildMoreCases(excludeCard) {
-    if (!moreCasesRow) return;
-    moreCasesRow.innerHTML = "";
-    const others = Array.from(cards).filter((c) => c !== excludeCard);
-    if (!others.length) return;
+    if (!moreCasesWheel) return;
+    moreCasesWheel.innerHTML = "";
+    ringRotation = 0;
+    ringVelocity = 0;
+    ringLastTickTime = 0;
 
-    moreCasesItems = others.map((otherCard, i) => {
+    const others = Array.from(cards).filter((c) => c !== excludeCard);
+    const nb = others.length;
+    if (!nb) {
+      ringN = 0;
+      return;
+    }
+    // Repeat the short project list around the ring so it's always densely
+    // filled, same as the reference's own `minRing` config.
+    const reps = Math.max(1, Math.ceil(RING_MIN_SLOTS / nb));
+    const ring = [];
+    for (let r = 0; r < reps; r++) for (let b = 0; b < nb; b++) ring.push(b);
+    ringN = ring.length;
+    ringStep = 360 / ringN;
+
+    ringItems = ring.map((projectIndex, i) => {
+      const otherCard = others[projectIndex];
       const slide = otherCard.closest(".project-slide");
       const name = slide ? (slide.querySelector(".project-heading")?.textContent ?? "") : "";
       const el = document.createElement("div");
       el.className = "more-cases-item";
       const source = otherCard.querySelector("img");
-      if (source) {
-        el.appendChild(source.cloneNode(true));
+      if (source && source.src) {
+        el.style.backgroundImage = `url("${source.src}")`;
       } else {
-        el.classList.add(PLACEHOLDER_CLASSES[i % PLACEHOLDER_CLASSES.length]);
+        el.classList.add(PLACEHOLDER_CLASSES[projectIndex % PLACEHOLDER_CLASSES.length]);
       }
       el.addEventListener("click", () => {
-        if (rowDragMoved) return; // a drag just ended here, not a tap
+        if (ringMoved > 6) return; // a drag just ended here, not a tap
         switchToCard(otherCard);
       });
-      moreCasesRow.appendChild(el);
-      return { el, name, card: otherCard };
+      moreCasesWheel.appendChild(el);
+      return { el, card: otherCard, name };
     });
 
-    moreCasesRow.scrollLeft = 0;
-    applyCoverflow();
+    const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
+    ringItems.forEach((item) => {
+      item.el.style.setProperty("--cw", cw + "px");
+      item.el.style.setProperty("--ih", Math.round(cw * 0.75) + "px");
+    });
+
+    layoutRing();
+    renderRing();
   }
 
-  // Simple click-and-drag-to-scroll for desktop mouse users (touch/trackpad
-  // already scroll the row natively via overflow-x). `rowDragMoved` is read
-  // by each item's own click handler above so a drag-release over a
-  // thumbnail doesn't also trigger that thumbnail's click. Both drag and
-  // plain hover pause the auto-scroll so the row stays put while browsing.
-  let rowDragging = false;
-  let rowDragMoved = false;
-  let rowDragStartX = 0;
-  let rowDragStartScroll = 0;
-
-  if (moreCasesRow) {
-    moreCasesRow.addEventListener("mouseenter", pauseAutoScroll);
-    moreCasesRow.addEventListener("mouseleave", () => {
-      if (!rowDragging) resumeAutoScrollSoon();
+  if (moreCasesWheel) {
+    moreCasesWheel.addEventListener("pointerdown", (e) => {
+      ringDragging = true;
+      ringMoved = 0;
+      ringLastX = e.clientX;
+      ringVelocity = 0;
+      moreCasesWheel.classList.add("is-dragging");
+      // Deliberately NOT using setPointerCapture here — capturing on the
+      // wheel also redirects each card's own `click` event to the wheel
+      // itself, so a plain tap on a card would never reach its listener.
+      // Tracking move/up on `window` for the drag's duration gets the same
+      // "keep tracking even if the pointer leaves the element" behavior
+      // without breaking child clicks.
+      window.addEventListener("pointermove", onRingPointerMove);
+      window.addEventListener("pointerup", endDrag);
     });
-    moreCasesRow.addEventListener("mousedown", (e) => {
-      rowDragging = true;
-      rowDragMoved = false;
-      rowDragStartX = e.clientX;
-      rowDragStartScroll = moreCasesRow.scrollLeft;
-      moreCasesRow.classList.add("is-dragging");
-      pauseAutoScroll();
+    function onRingPointerMove(e) {
+      if (!ringDragging) return;
+      const dx = e.clientX - ringLastX;
+      ringLastX = e.clientX;
+      ringMoved += Math.abs(dx);
+      const d = dx * 0.22;
+      ringRotation += d;
+      ringVelocity = d / 16;
+    }
+    function endDrag() {
+      if (!ringDragging) return;
+      ringDragging = false;
+      moreCasesWheel.classList.remove("is-dragging");
+      window.removeEventListener("pointermove", onRingPointerMove);
+      window.removeEventListener("pointerup", endDrag);
+    }
+    moreCasesWheel.addEventListener("mouseenter", () => {
+      ringHover = true;
     });
-    window.addEventListener("mousemove", (e) => {
-      if (!rowDragging) return;
-      const deltaX = e.clientX - rowDragStartX;
-      if (Math.abs(deltaX) > 4) rowDragMoved = true;
-      moreCasesRow.scrollLeft = rowDragStartScroll - deltaX;
+    moreCasesWheel.addEventListener("mouseleave", () => {
+      ringHover = false;
     });
-    window.addEventListener("mouseup", () => {
-      if (!rowDragging) return;
-      rowDragging = false;
-      moreCasesRow.classList.remove("is-dragging");
-      resumeAutoScrollSoon();
+    window.addEventListener("resize", () => {
+      if (!ringN) return;
+      const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
+      ringItems.forEach((item) => {
+        item.el.style.setProperty("--cw", cw + "px");
+        item.el.style.setProperty("--ih", Math.round(cw * 0.75) + "px");
+      });
+      layoutRing();
+      renderRing();
     });
   }
 

@@ -1153,13 +1153,14 @@
             </div>
           </div>
 
-          <!-- More Cases — a simple horizontally-scrolling row of the other
-               project thumbnails (same idea as emblematica.agency's
-               project pages), with the centered project's name shown
-               underneath. Drag/scroll/swipe to browse, click to switch. -->
+          <!-- More Cases — a globe-like orbit of the other project
+               thumbnails (same mechanic as emblematica.agency's project
+               pages). Cards travel a curved arc, not a flat line, growing
+               and flattening as they swing through center; the name below
+               only ever shows whichever project is centered right now. -->
           <div class="lightbox-more-cases" id="lightboxMoreCases">
             <span class="more-cases-kicker">More cases</span>
-            <div class="more-cases-row" id="moreCasesRow"></div>
+            <div class="more-cases-wheel" id="moreCasesWheel"></div>
             <p class="more-cases-name" id="moreCasesName"></p>
           </div>
         </div>
