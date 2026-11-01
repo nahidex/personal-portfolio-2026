@@ -1228,11 +1228,29 @@ ul {
   border-radius: 14px;
   overflow: hidden;
   background-color: #1a1a1e;
-  background-size: cover;
-  background-position: center center;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 600px;
+}
+
+/* Each card's photo is sliced into thin vertical strips, every strip on its
+   own small rotateY/translateZ spoke — bending the flat photo into a barrel/
+   cylinder curve, same as the reference's warped-photo look (their version
+   is a WebGL sphere-mapped quad; this fakes the same curvature in CSS by
+   subdividing the image instead of warping a single flat plane). */
+.more-cases-item-strips {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.more-cases-item-strip {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background-repeat: no-repeat;
   backface-visibility: hidden;
 }
 

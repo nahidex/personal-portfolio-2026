@@ -1157,10 +1157,14 @@ function initProjectLightbox() {
   const AUTO_DEG_PER_MS = 0.005;
   const ARC_RATIO = 0.26; // vertical radius as a fraction of the horizontal one — this is what bends the path into a visible curved orbit instead of a flat sideways line
 
-  // Dummy placeholder thumbnails (reusing the same gradient swatches as the
-  // case-study content blocks above) stand in for any video-based project —
-  // the ring only ever shows still images, never an embedded <video>.
-  const PLACEHOLDER_CLASSES = ["placeholder-a", "placeholder-b", "placeholder-c"];
+  // Dummy placeholder thumbnails (same gradients as the case-study content
+  // blocks above) stand in for any video-based project — applied directly
+  // as each strip's own background so the slicing math still works on them.
+  const PLACEHOLDER_GRADIENTS = [
+    "linear-gradient(135deg, #2c2c2c 0%, #0a0a0a 100%)",
+    "linear-gradient(135deg, #1d1d1d 0%, #3a3a3a 100%)",
+    "linear-gradient(135deg, #262626 0%, #050505 100%)",
+  ];
 
   function layoutRing() {
     const cw = ringItems[0] ? ringItems[0].el.offsetWidth : 300;
@@ -1228,6 +1232,47 @@ function initProjectLightbox() {
     renderRing();
   });
 
+  const STRIP_COUNT = 9;
+  const STRIP_ANGLE_STEP = 6; // degrees of local bend between neighbouring strips — constant per card, independent of its position on the big ring
+
+  // Slices a card's photo into thin vertical strips, each on its own small
+  // rotateY/translateZ spoke — bends the flat photo into a barrel/cylinder
+  // curve, matching the reference's warped-photo look (their version is a
+  // WebGL sphere-mapped quad; subdividing the image is the CSS-only way to
+  // fake the same curvature on a plain flat element).
+  function buildCardStrips(el, bgImage) {
+    const strips = document.createElement("div");
+    strips.className = "more-cases-item-strips";
+    for (let i = 0; i < STRIP_COUNT; i++) {
+      const strip = document.createElement("div");
+      strip.className = "more-cases-item-strip";
+      if (bgImage) strip.style.backgroundImage = bgImage;
+      strips.appendChild(strip);
+    }
+    el.appendChild(strips);
+    return strips;
+  }
+
+  function layoutCardStrips(strips, cw, ch) {
+    const stripW = cw / STRIP_COUNT;
+    const stripRadius = (stripW / 2) / Math.tan((STRIP_ANGLE_STEP / 2) * (Math.PI / 180));
+    const mid = (STRIP_COUNT - 1) / 2;
+    Array.from(strips.children).forEach((strip, i) => {
+      // All strips stack on the SAME centered anchor — rotateY+translateZ
+      // alone fans them out around a shared pivot. Positioning each strip
+      // at its own flat `left` offset first (as if laying them in a row)
+      // and then rotating would rotate each one around ITS OWN separate
+      // center instead of a common arc center, leaving visible gaps.
+      strip.style.width = stripW + 1 + "px";
+      strip.style.left = "50%";
+      strip.style.marginLeft = -(stripW / 2) + "px";
+      strip.style.backgroundSize = `${cw}px ${ch}px`;
+      strip.style.backgroundPosition = `${-(i * stripW - (cw - stripW * STRIP_COUNT) / 2)}px 0px`;
+      const angle = (i - mid) * STRIP_ANGLE_STEP;
+      strip.style.transform = `rotateY(${angle}deg) translateZ(${stripRadius}px)`;
+    });
+  }
+
   function buildMoreCases(excludeCard) {
     if (!moreCasesWheel) return;
     moreCasesWheel.innerHTML = "";
@@ -1256,23 +1301,25 @@ function initProjectLightbox() {
       const el = document.createElement("div");
       el.className = "more-cases-item";
       const source = otherCard.querySelector("img");
-      if (source && source.src) {
-        el.style.backgroundImage = `url("${source.src}")`;
-      } else {
-        el.classList.add(PLACEHOLDER_CLASSES[projectIndex % PLACEHOLDER_CLASSES.length]);
-      }
+      const bgImage =
+        source && source.src
+          ? `url("${source.src}")`
+          : PLACEHOLDER_GRADIENTS[projectIndex % PLACEHOLDER_GRADIENTS.length];
+      const strips = buildCardStrips(el, bgImage);
       el.addEventListener("click", () => {
         if (ringMoved > 6) return; // a drag just ended here, not a tap
         switchToCard(otherCard);
       });
       moreCasesWheel.appendChild(el);
-      return { el, card: otherCard, name };
+      return { el, strips, card: otherCard, name };
     });
 
     const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
+    const ch = Math.round(cw * 0.75);
     ringItems.forEach((item) => {
       item.el.style.setProperty("--cw", cw + "px");
-      item.el.style.setProperty("--ih", Math.round(cw * 0.75) + "px");
+      item.el.style.setProperty("--ih", ch + "px");
+      layoutCardStrips(item.strips, cw, ch);
     });
 
     layoutRing();
