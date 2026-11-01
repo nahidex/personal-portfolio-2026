@@ -1311,7 +1311,7 @@ ul {
 .testimonials-stack {
   position: relative;
   width: 100%;
-  height: clamp(360px, 52vw, 560px);
+  height: clamp(300px, 40vw, 440px);
   perspective: 1600px;
 }
 
@@ -1434,7 +1434,7 @@ ul {
   }
 
   .testimonials-stack {
-    height: clamp(420px, 120vw, 560px);
+    height: clamp(340px, 95vw, 460px);
   }
 
   .testimonial-card-quote {
