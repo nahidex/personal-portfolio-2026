@@ -1851,6 +1851,21 @@ ul {
   }
 }
 
+/* Transition image between Who's On Back and Contact */
+.section-divider-photo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 2rem 4rem;
+  box-sizing: border-box;
+}
+
+.section-divider-photo img {
+  display: block;
+  width: min(360px, 60vw);
+  height: auto;
+}
+
 .content-section.light-bg {
   background-color: #f2f2f2;
 }
