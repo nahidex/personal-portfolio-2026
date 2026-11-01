@@ -1168,7 +1168,7 @@ ul {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2.5rem;
   margin-top: 1rem;
 }
 
@@ -1183,7 +1183,7 @@ ul {
 .more-cases-wheel {
   position: relative;
   width: 100%;
-  height: clamp(320px, 34vw, 480px);
+  height: clamp(360px, 36vw, 480px);
   perspective: 1700px;
   perspective-origin: 50% 45%;
   cursor: grab;
@@ -1225,10 +1225,7 @@ ul {
   margin-left: calc(var(--cw) / -2);
   margin-top: calc(var(--ih) / -2);
   display: block;
-  border-radius: 14px;
-  overflow: hidden;
   background-color: #1a1a1e;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   will-change: transform, opacity;
   backface-visibility: hidden;

@@ -1155,7 +1155,6 @@ function initProjectLightbox() {
   let activeRingCard = null;
   const RING_MIN_SLOTS = 18;
   const AUTO_DEG_PER_MS = 0.005;
-  const ARC_RATIO = 0.26; // vertical radius as a fraction of the horizontal one — this is what bends the path into a visible curved orbit instead of a flat sideways line
 
   // Dummy placeholder thumbnails (same gradients as the case-study content
   // blocks above) stand in for any video-based project — applied directly
@@ -1199,11 +1198,12 @@ function initProjectLightbox() {
       }
       const x = ringRadius * s;
       const z = ringRadius * c - ringRadius;
-      // A real curved arc (rises through the sides, flat at center and at
-      // the far edge) — like looking at a globe's equator from a slight
-      // angle — rather than a near-flat sideways line.
-      const y = -ringRadius * ARC_RATIO * s;
-      const tilt = -s * 9;
+      // Reference's own formula (verbatim): a small one-directional lift as
+      // a card turns away from center, not a symmetric up/down arc — that's
+      // what keeps every visible card sitting at roughly the same height
+      // instead of a staggered staircase.
+      const y = (1 - c) * ringRadius * 0.12;
+      const tilt = -s * 4;
       const sc = 0.82 + 0.18 * Math.max(c, 0);
       el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(2)}deg) rotateZ(${tilt.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
       el.style.opacity = String(gsap.utils.clamp(0, 1, (c + 0.15) * 3.5));
