@@ -1192,70 +1192,35 @@ function initProjectLightbox() {
 }
 
 /* ==========================================================================
-   Testimonials Section (single-slide reveal, advances one-per-scroll-step)
+   Testimonials Section (3D card-deck: cards slide in from the right, pause
+   centered, then recede into a tilted-back stacked pile — same interaction
+   mechanic as emblematica.agency's "what we do best" service cards)
    ========================================================================== */
 function initTestimonialsScroll() {
   const section = document.getElementById("testimonials");
   const cardContainer = document.getElementById("worksRevealCard");
-  const tagEl = document.getElementById("testimonialTag");
-  const quoteEl = document.getElementById("testimonialQuote");
-  const avatarEl = document.getElementById("testimonialAvatar");
-  const nameEl = document.getElementById("testimonialName");
-  const roleEl = document.getElementById("testimonialRole");
-  const indexBgEl = document.getElementById("testimonialIndexBg");
-  const personEl = document.getElementById("testimonialPerson");
+  const stackEl = document.getElementById("testimonialsStack");
   const prevBtn = document.getElementById("testimonialPrev");
   const nextBtn = document.getElementById("testimonialNext");
   const progressCountEl = document.getElementById("testimonialProgressCount");
   const progressTrackEl = document.getElementById("testimonialProgressTrack");
 
-  if (!section || !tagEl || !quoteEl) return;
+  if (!section || !stackEl) return;
   if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
 
   gsap.registerPlugin(ScrollTrigger);
 
-  const testimonials = [
-    {
-      company: "CraftedAI",
-      quote:
-        "Nahid's work in UX design exceeded my expectations, with incredible attention to detail and creativity. His proactive communication made the whole collaboration smooth from start to finish.",
-      name: "Habibullah Nahid",
-      role: "Founder and CEO",
-      avatar: "./resources/testimonial-1.jpg",
-    },
-    {
-      company: "CraftedAI",
-      quote:
-        "Extremely creative and efficient to work with. I needed an entire CRM system designed from scratch, and Nahid delivered beyond my expectations. Will definitely be working with him again.",
-      name: "Pike Wrang",
-      role: "Founder and CEO",
-      avatar: "./resources/testimonial-2.jpg",
-    },
-    {
-      company: "CraftedAI",
-      quote:
-        "I would give Nahid a 20-star review if I could. My delivery exceeded expectations in both quality and service — if you need someone who turns loose requirements into a polished product, book him.",
-      name: "Rose Jonson",
-      role: "Founder and CEO",
-      avatar: "./resources/testimonial-3.jpg",
-    },
-    {
-      company: "CraftedAI",
-      quote:
-        "Nahid is everything that makes a project perfect: attention to detail, thoughtful feedback, and real talent. Absolutely book him if you want the best experience — you won't regret it.",
-      name: "ADM Absc Louis",
-      role: "Founder and CEO",
-      avatar: "./resources/testimonial-4.jpg",
-    },
-  ];
+  const cards = gsap.utils.toArray(stackEl.querySelectorAll(".testimonial-card"));
+  const N = cards.length;
+  if (!N) return;
 
-  const N = testimonials.length;
-  const PX_PER_STEP = 900; // scroll pixels needed to advance one testimonial (shared with the pin below)
+  const PX_PER_STEP = 900; // scroll pixels needed to advance one card (shared with the pin below)
   const pinDistance = (N - 1) * PX_PER_STEP;
 
-  // One segment per testimonial. The position runs 0 .. N, where the whole
-  // number is the slide on screen and the fraction is how far through it we
-  // are — so every segment, the first one included, fills like a loader.
+  // One segment per card. The position runs 0 .. N, where the whole number
+  // is the card centered on screen and the fraction is how far through its
+  // hold/recede phase we are — so every segment, the first one included,
+  // fills like a loader.
   const steps = [];
   if (progressTrackEl) {
     for (let i = 0; i < N; i++) {
@@ -1290,12 +1255,11 @@ function initTestimonialsScroll() {
   // continuous timeline has a single unambiguous "before" state (white).
   //
   // The black->white fade is positioned to start EXACTLY when the pin
-  // releases (right after the 4th/last testimonial finishes) — computed in
-  // real pixels (not a guessed timeline fraction): "top 95%" to "top top" is
-  // 0.95 * viewport-height of scroll, then the pin itself lasts
-  // `pinDistance`. Using those same pixel numbers as both the timeline's
-  // "time" units and the ScrollTrigger's actual scroll range makes the
-  // mapping exact.
+  // releases (right after the last card finishes) — computed in real pixels
+  // (not a guessed timeline fraction): "top 95%" to "top top" is 0.95 *
+  // viewport-height of scroll, then the pin itself lasts `pinDistance`.
+  // Using those same pixel numbers as both the timeline's "time" units and
+  // the ScrollTrigger's actual scroll range makes the mapping exact.
   const bgTarget = cardContainer || section;
   const darkenDur = 500;
   const fadeOutDur = 650;
@@ -1327,114 +1291,99 @@ function initTestimonialsScroll() {
     { backgroundColor: "#ffffff", ease: "none", duration: fadeOutDur },
     pinReleasePoint
   );
-  let currentIndex = -1;
-  let revealTl = null;
 
-  function renderSlide(index, animate) {
-    const data = testimonials[index];
+  // --- Card deck layout -----------------------------------------------
+  // Each card's look is driven purely by its signed distance from the
+  // continuous "focus" position (d = pos - index):
+  //   d <= -1        : fully off-screen to the right, tilted, waiting.
+  //   -1 < d < 0      : sliding in, untilting as it approaches center.
+  //   0 <= d < HOLD    : centered, flat, full scale — the active card.
+  //   d >= HOLD       : receding into the stacked pile behind it (pushed
+  //                      back in Z, lifted up, scaled down) — the further
+  //                      past HOLD, the deeper in the pile it sits, capped
+  //                      so older cards don't vanish entirely.
+  const HOLD = 0.35;
+  const STACK_CAP = 2;
+  const ENTER_X_PERCENT = 130;
+  const ENTER_ROTATE_Y = 10;
+  const ENTER_ROTATE_Z = 9;
+  const STACK_Y_PERCENT = 13;
+  const STACK_Z = 170;
+  const STACK_SCALE = 0.08;
 
-    tagEl.textContent = data.company;
-    avatarEl.src = data.avatar;
-    avatarEl.alt = data.name;
-    nameEl.textContent = data.name;
-    roleEl.textContent = data.role;
-    indexBgEl.textContent = String(index + 1).padStart(2, "0");
+  function layoutCards(pos) {
+    cards.forEach((card, i) => {
+      const d = pos - i;
+      let xPercent = 0;
+      let yPercent = 0;
+      let z = 0;
+      let rotateY = 0;
+      let rotateZ = 0;
+      let scale = 1;
 
-    quoteEl.innerHTML = "";
-    data.quote.split(" ").forEach((word) => {
-      const span = document.createElement("span");
-      span.className = "t-word";
-      span.textContent = word;
-      quoteEl.appendChild(span);
-      quoteEl.appendChild(document.createTextNode(" "));
+      if (d < 0) {
+        const t = gsap.utils.clamp(0, 1, d + 1);
+        xPercent = gsap.utils.interpolate(ENTER_X_PERCENT, 0, t);
+        rotateY = gsap.utils.interpolate(-ENTER_ROTATE_Y, 0, t);
+        rotateZ = gsap.utils.interpolate(ENTER_ROTATE_Z, 0, t);
+        scale = gsap.utils.interpolate(0.92, 1, t);
+      } else if (d >= HOLD) {
+        const s = gsap.utils.clamp(0, STACK_CAP, d - HOLD) / STACK_CAP;
+        yPercent = -STACK_Y_PERCENT * s;
+        z = -STACK_Z * s;
+        scale = 1 - STACK_SCALE * s;
+      }
+
+      gsap.set(card, {
+        xPercent,
+        yPercent,
+        z,
+        rotateY,
+        rotateZ,
+        scale,
+        zIndex: 10 + i,
+        transformOrigin: "center center",
+      });
     });
-    const words = quoteEl.querySelectorAll(".t-word");
-
-    if (revealTl) revealTl.kill();
-
-    if (!animate) {
-      gsap.set(tagEl, { opacity: 1, x: 0 });
-      gsap.set(words, { opacity: 1, y: 0, filter: "blur(0px)" });
-      gsap.set(personEl, { opacity: 1, y: 0 });
-      return;
-    }
-
-    revealTl = gsap.timeline();
-    // Tag: reveals left-to-right with opacity
-    revealTl.fromTo(
-      tagEl,
-      { opacity: 0, x: -16 },
-      { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" }
-    );
-    // Quote: word-by-word, blurred -> sharp (settles into focus like sand)
-    revealTl.fromTo(
-      words,
-      { opacity: 0, y: 14, filter: "blur(8px)" },
-      { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "power3.out", stagger: 0.03 },
-      "-=0.2"
-    );
-    // Person block: only starts once the quote has fully finished revealing
-    // (no explicit position — GSAP appends it right after the previous
-    // tween, including its stagger, ends).
-    revealTl.fromTo(
-      personEl,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }
-    );
   }
 
-  function goToIndex(index) {
-    const clamped = Math.max(0, Math.min(N - 1, index));
-    if (clamped === currentIndex) return;
-    currentIndex = clamped;
-    renderSlide(currentIndex, true);
-  }
+  layoutCards(0);
+  setProgress(0);
 
-  // The carousel runs off a single position in slide units, and autoplay and
-  // scrolling both simply move it: the ticker creeps it forward every frame
-  // while a scroll adds its own (far larger) delta on top. Nothing has to be
-  // paused or locked out — while the visitor scrolls their input naturally
-  // outweighs the creep, and the moment they stop it carries on by itself.
-  const AUTO_SEC = 4.5; // seconds a testimonial is held before advancing
-  const MAX_POS = N - 0.001; // scrolling stops on the last slide rather than wrapping
+  const MAX_POS = N - 0.001; // scrolling stops on the last card rather than wrapping
   const state = { pos: 0 };
   let inView = false;
 
   function applyPosition(pos) {
     state.pos = pos;
     setProgress(pos);
-    goToIndex(Math.min(N - 1, Math.floor(pos)));
+    layoutCards(pos);
   }
 
   function nudgeTo(pos) {
     applyPosition(gsap.utils.clamp(0, MAX_POS, pos));
   }
 
+  // The carousel runs off a single position in card units, and autoplay and
+  // scrolling both simply move it: the ticker creeps it forward every frame
+  // while a scroll adds its own (far larger) delta on top. Nothing has to be
+  // paused or locked out — while the visitor scrolls their input naturally
+  // outweighs the creep, and the moment they stop it carries on by itself.
+  const AUTO_SEC = 4.5; // seconds a card is held before advancing
   gsap.ticker.add((time, deltaMs) => {
     if (!inView || document.hidden) return;
-    // Cap the delta so a backgrounded tab doesn't jump several slides at once.
+    // Cap the delta so a backgrounded tab doesn't jump several cards at once.
     const next = state.pos + Math.min(deltaMs, 100) / 1000 / AUTO_SEC;
     applyPosition(next >= N ? 0 : next);
   });
 
-  // First slide appears instantly (no animation) as soon as it's built
-  goToIndex(0);
-  renderSlide(0, false);
-  setProgress(0);
-
-  // Item-by-item reveal (same technique as the About section's initTextReveal:
-  // a single scrubbed timeline that reveals each piece in sequence with
-  // opacity + y, using "+=" relative offsets for a cascading feel) instead of
-  // the whole block fading in as one flat unit. Set AFTER the instant render
-  // above so these hidden states win over renderSlide's instant-visible ones.
+  // Heading reveal (same technique as the About section's initTextReveal: a
+  // single scrubbed timeline that reveals the kicker + deck together with
+  // opacity + y) instead of the whole block fading in as one flat unit.
   const headingEl = section.querySelector(".testimonials-heading");
-  const quoteBlock = section.querySelector(".testimonial-quote");
-  const footerBlock = section.querySelector(".testimonial-footer");
 
   if (headingEl) gsap.set(headingEl, { opacity: 0, y: 40 });
-  gsap.set(tagEl, { opacity: 0, y: 40 });
-  if (quoteBlock) gsap.set(quoteBlock, { opacity: 0, y: 55 });
-  if (footerBlock) gsap.set(footerBlock, { opacity: 0, y: 45 });
+  gsap.set(stackEl, { opacity: 0, y: 55 });
 
   const entranceTl = gsap.timeline({
     scrollTrigger: {
@@ -1449,13 +1398,7 @@ function initTestimonialsScroll() {
   if (headingEl) {
     entranceTl.to(headingEl, { opacity: 1, y: 0, duration: 1.1, ease: "sine.out" });
   }
-  entranceTl.to(tagEl, { opacity: 1, y: 0, duration: 1.1, ease: "sine.out" }, "+=0.2");
-  if (quoteBlock) {
-    entranceTl.to(quoteBlock, { opacity: 1, y: 0, duration: 1.5, ease: "sine.out" }, "+=0.2");
-  }
-  if (footerBlock) {
-    entranceTl.to(footerBlock, { opacity: 1, y: 0, duration: 1.2, ease: "sine.out" }, "+=0.2");
-  }
+  entranceTl.to(stackEl, { opacity: 1, y: 0, duration: 1.5, ease: "sine.out" }, "+=0.2");
 
   prevBtn && prevBtn.addEventListener("click", () => nudgeTo(Math.floor(state.pos) - 1));
   nextBtn && nextBtn.addEventListener("click", () => nudgeTo(Math.floor(state.pos) + 1));
@@ -1491,10 +1434,8 @@ function initTestimonialsScroll() {
       pinType: "fixed",
       // No `snap` here — GSAP's own snap-settle tween fires extra onUpdate
       // calls as it eases the scroll position to the nearest point, which
-      // was flipping the rounded index a second time right after the first
-      // reveal (looked like the animation "playing twice"). Rounding
-      // `self.progress` below is already enough to keep exactly one
-      // testimonial showing at a time.
+      // was flipping the layout a second time right after the first reveal
+      // (looked like the animation "playing twice").
       invalidateOnRefresh: true,
       onRefresh: (self) => {
         lastScrollPos = self.progress * N;
