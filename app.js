@@ -1314,6 +1314,10 @@ function initTestimonialsScroll() {
   function layoutCards(pos) {
     cards.forEach((card, i) => {
       const d = pos - i;
+      // Alternate the entrance side per card — even index from the right,
+      // odd index from the left (mirrored x/rotation), same as the
+      // reference's "is-next" cards waiting on both sides of the deck.
+      const side = i % 2 === 0 ? 1 : -1;
       let xPercent = 0;
       let yPercent = 0;
       let z = 0;
@@ -1323,9 +1327,9 @@ function initTestimonialsScroll() {
 
       if (d < 0) {
         const t = gsap.utils.clamp(0, 1, d + 1);
-        xPercent = gsap.utils.interpolate(ENTER_X_PERCENT, 0, t);
-        rotateY = gsap.utils.interpolate(-ENTER_ROTATE_Y, 0, t);
-        rotateZ = gsap.utils.interpolate(ENTER_ROTATE_Z, 0, t);
+        xPercent = side * gsap.utils.interpolate(ENTER_X_PERCENT, 0, t);
+        rotateY = -side * gsap.utils.interpolate(-ENTER_ROTATE_Y, 0, t);
+        rotateZ = side * gsap.utils.interpolate(ENTER_ROTATE_Z, 0, t);
         scale = gsap.utils.interpolate(0.92, 1, t);
       } else if (d >= HOLD) {
         const s = gsap.utils.clamp(0, STACK_CAP, d - HOLD) / STACK_CAP;
