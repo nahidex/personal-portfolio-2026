@@ -1257,19 +1257,24 @@ function initProjectLightbox() {
     const stripW = cw / STRIP_COUNT;
     const stripRadius = (stripW / 2) / Math.tan((STRIP_ANGLE_STEP / 2) * (Math.PI / 180));
     const mid = (STRIP_COUNT - 1) / 2;
+    const rad = Math.PI / 180;
     Array.from(strips.children).forEach((strip, i) => {
-      // All strips stack on the SAME centered anchor — rotateY+translateZ
-      // alone fans them out around a shared pivot. Positioning each strip
-      // at its own flat `left` offset first (as if laying them in a row)
-      // and then rotating would rotate each one around ITS OWN separate
-      // center instead of a common arc center, leaving visible gaps.
+      // All strips stack on the SAME centered anchor; the transform alone
+      // both fans them out sideways (x) and folds them around the arc (z),
+      // same formula as the big ring, just at card-local scale. Z is
+      // normalized (`- stripRadius`) so the CENTER strip sits flush at z:0
+      // instead of every strip bulging forward by the full radius, which
+      // was blowing the whole card up far past its real size.
       strip.style.width = stripW + 1 + "px";
       strip.style.left = "50%";
       strip.style.marginLeft = -(stripW / 2) + "px";
       strip.style.backgroundSize = `${cw}px ${ch}px`;
       strip.style.backgroundPosition = `${-(i * stripW - (cw - stripW * STRIP_COUNT) / 2)}px 0px`;
       const angle = (i - mid) * STRIP_ANGLE_STEP;
-      strip.style.transform = `rotateY(${angle}deg) translateZ(${stripRadius}px)`;
+      const r = angle * rad;
+      const x = stripRadius * Math.sin(r);
+      const z = stripRadius * Math.cos(r) - stripRadius;
+      strip.style.transform = `translate3d(${x.toFixed(2)}px, 0px, ${z.toFixed(2)}px) rotateY(${angle}deg)`;
     });
   }
 
