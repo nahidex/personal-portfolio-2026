@@ -1275,12 +1275,25 @@ function initTestimonialsScroll() {
   //                      so older cards don't vanish entirely.
   const HOLD = 0.35;
   const STACK_CAP = 2;
-  const ENTER_X_PERCENT = 130;
   const ENTER_ROTATE_Y = 10;
   const ENTER_ROTATE_Z = 9;
   const STACK_Y_PERCENT = 13;
   const STACK_Z = 170;
   const STACK_SCALE = 0.08;
+
+  // xPercent is relative to the CARD's own width, not the viewport — a fixed
+  // percentage isn't enough to clear the screen edge once the card is wider
+  // than the gap between the deck and the viewport edge. Recomputed from the
+  // card's actual rendered width so it always travels at least one full
+  // viewport width (plus a buffer) off to the side, regardless of how wide
+  // the card itself is.
+  let enterXPercent = 160;
+  function updateEnterXPercent() {
+    const cardWidth = cards[0].getBoundingClientRect().width;
+    if (cardWidth > 0) {
+      enterXPercent = (window.innerWidth / cardWidth) * 100 + 30;
+    }
+  }
 
   function layoutCards(pos) {
     cards.forEach((card, i) => {
@@ -1298,7 +1311,7 @@ function initTestimonialsScroll() {
 
       if (d < 0) {
         const t = gsap.utils.clamp(0, 1, d + 1);
-        xPercent = side * gsap.utils.interpolate(ENTER_X_PERCENT, 0, t);
+        xPercent = side * gsap.utils.interpolate(enterXPercent, 0, t);
         rotateY = -side * gsap.utils.interpolate(-ENTER_ROTATE_Y, 0, t);
         rotateZ = side * gsap.utils.interpolate(ENTER_ROTATE_Z, 0, t);
         scale = gsap.utils.interpolate(0.92, 1, t);
@@ -1322,7 +1335,12 @@ function initTestimonialsScroll() {
     });
   }
 
+  updateEnterXPercent();
   layoutCards(0);
+  window.addEventListener("resize", () => {
+    updateEnterXPercent();
+    layoutCards(state.pos);
+  });
 
   const MAX_POS = N - 0.001; // scrolling stops on the last card rather than wrapping
   const state = { pos: 0 };
