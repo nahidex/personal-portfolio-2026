@@ -1740,16 +1740,26 @@ ul {
   opacity: 1;
 }
 
+/* Grid (not flex+absolute) so the two copy columns are sized/anchored
+   relative to the portrait itself, not the full viewport width — "auto"
+   center column tracks the portrait's own width, and the side columns
+   flex to fill whatever room is left either side of it. */
 .creator-grid {
   position: relative;
   margin-top: 3rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, auto) minmax(140px, 1fr);
+  align-items: start;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .creator-portrait {
-  width: min(1100px, 68vw);
+  grid-column: 2;
+  grid-row: 1;
+  width: clamp(420px, 55vw, 900px);
   flex-shrink: 0;
   margin: 0;
 }
@@ -1761,20 +1771,23 @@ ul {
 }
 
 .creator-copy {
-  position: absolute;
-  width: clamp(220px, 20vw, 320px);
+  width: 100%;
   pointer-events: none;
 }
 
 .creator-copy-primary {
-  left: 0;
-  top: 1.5rem;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  padding-top: 1.5rem;
   text-align: left;
 }
 
 .creator-copy-secondary {
-  right: 0;
-  bottom: 2rem;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
   text-align: right;
 }
 
@@ -1816,18 +1829,19 @@ ul {
 
 @media (max-width: 900px) {
   .creator-grid {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
+    justify-items: center;
     gap: 2rem;
   }
 
   .creator-portrait {
+    grid-column: 1;
     width: min(480px, 85vw);
   }
 
   .creator-copy {
-    position: static;
-    width: 100%;
+    grid-column: 1;
+    justify-self: center;
     max-width: 360px;
     text-align: center;
   }
