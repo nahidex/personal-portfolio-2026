@@ -1120,6 +1120,137 @@ function initProjectLightbox() {
     mediaSlot.appendChild(clone);
   }
 
+  function applyProjectContent(card) {
+    const slide = card.closest(".project-slide");
+    clientEl.textContent = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    headingEl.textContent = slide
+      ? (slide.querySelector(".project-heading")?.textContent ?? "")
+      : "";
+    yearEl.textContent = slide ? (slide.querySelector(".project-year")?.textContent ?? "") : "";
+    fillMedia(card);
+  }
+
+  // --- More Cases wheel -------------------------------------------------
+  // A draggable CSS 3D carousel of the OTHER projects' thumbnails, shown at
+  // the end of the case-study content — same idea as emblematica.agency's
+  // project-page carousel (their version is WebGL; this reaches the same
+  // look with plain CSS rotateY/translateZ, since nothing else on this site
+  // uses a 3D/canvas library). Clicking a thumbnail swaps the lightbox's
+  // content to that project in place, without replaying the open animation.
+  const moreCasesWheel = document.getElementById("moreCasesWheel");
+  const moreCasesTrack = document.getElementById("moreCasesTrack");
+  const moreCasesName = document.getElementById("moreCasesName");
+  let wheelRotation = 0;
+  let wheelItems = [];
+
+  function updateMoreCasesLook() {
+    if (!wheelItems.length) return;
+    let closest = wheelItems[0];
+    let closestDist = Infinity;
+    wheelItems.forEach((item) => {
+      let angle = (item.angle + wheelRotation) % 360;
+      if (angle > 180) angle -= 360;
+      if (angle < -180) angle += 360;
+      const dist = Math.abs(angle);
+      const look = gsap.utils.clamp(0, 1, 1 - dist / 110);
+      gsap.set(item.el, { opacity: 0.35 + 0.65 * look });
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = item;
+      }
+    });
+    moreCasesName.textContent = closest.name;
+  }
+
+  function buildMoreCases(excludeCard) {
+    if (!moreCasesWheel || !moreCasesTrack) return;
+    moreCasesTrack.innerHTML = "";
+    wheelRotation = 0;
+    const others = Array.from(cards).filter((c) => c !== excludeCard);
+    const n = others.length;
+    if (!n) return;
+    const angleStep = 360 / n;
+    const itemWidth = moreCasesWheel.clientWidth > 0 ? Math.min(220, moreCasesWheel.clientWidth * 0.22) : 180;
+    const radius = itemWidth / 2 / Math.tan(Math.PI / n);
+
+    wheelItems = others.map((otherCard, i) => {
+      const slide = otherCard.closest(".project-slide");
+      const name = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+      const el = document.createElement("div");
+      el.className = "more-cases-item";
+      const angle = i * angleStep;
+      el.style.transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
+      const source = otherCard.querySelector("img, video");
+      if (source) {
+        const clone = source.cloneNode(true);
+        if (clone.tagName === "VIDEO") {
+          clone.autoplay = true;
+          clone.muted = true;
+          clone.loop = true;
+          clone.playsInline = true;
+        }
+        el.appendChild(clone);
+      }
+      el.addEventListener("click", () => {
+        if (dragMoved) return; // a drag just ended on this item, not a tap
+        switchToCard(otherCard);
+      });
+      moreCasesTrack.appendChild(el);
+      return { el, angle, name, card: otherCard };
+    });
+
+    gsap.set(moreCasesTrack, { rotateY: 0 });
+    updateMoreCasesLook();
+  }
+
+  let dragging = false;
+  let dragMoved = false;
+  let dragStartX = 0;
+  let dragStartRotation = 0;
+
+  function onDragStart(e) {
+    dragging = true;
+    dragMoved = false;
+    dragStartX = e.clientX;
+    dragStartRotation = wheelRotation;
+    moreCasesWheel.classList.add("is-dragging");
+    // Track move/up on the window rather than via setPointerCapture — capture
+    // also redirects the subsequent synthetic `click` to the wheel itself,
+    // which would stop a plain tap on a thumbnail from ever reaching it.
+    window.addEventListener("pointermove", onDragMove);
+    window.addEventListener("pointerup", onDragEnd);
+  }
+  function onDragMove(e) {
+    if (!dragging) return;
+    const deltaX = e.clientX - dragStartX;
+    if (Math.abs(deltaX) > 4) dragMoved = true;
+    wheelRotation = dragStartRotation + deltaX * 0.35;
+    gsap.set(moreCasesTrack, { rotateY: wheelRotation });
+    updateMoreCasesLook();
+  }
+  function onDragEnd() {
+    if (!dragging) return;
+    dragging = false;
+    moreCasesWheel.classList.remove("is-dragging");
+    window.removeEventListener("pointermove", onDragMove);
+    window.removeEventListener("pointerup", onDragEnd);
+  }
+
+  if (moreCasesWheel) {
+    moreCasesWheel.addEventListener("pointerdown", onDragStart);
+  }
+
+  function switchToCard(card) {
+    applyProjectContent(card);
+    scrollEl.scrollTop = 0;
+    wheelTarget = 0;
+    userScrolled = true; // a project switch should never auto-retract the hero
+    gsap.set(hero, { "--hero-clip": "0%" });
+    gsap.set(mediaSlot, { scale: 1 });
+    armTitleReveal();
+    buildMoreCases(card);
+  }
+
   // Clips the hero's bottom edge away as scrollTop grows, so it looks like the
   // media retracts upward under the top bar — never resizes/distorts the image.
   function onScroll() {
@@ -1131,14 +1262,8 @@ function initProjectLightbox() {
     if (isOpen) return;
     isOpen = true;
 
-    const slide = card.closest(".project-slide");
-    clientEl.textContent = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
-    headingEl.textContent = slide
-      ? (slide.querySelector(".project-heading")?.textContent ?? "")
-      : "";
-    yearEl.textContent = slide ? (slide.querySelector(".project-year")?.textContent ?? "") : "";
-
-    fillMedia(card);
+    applyProjectContent(card);
+    buildMoreCases(card);
     scrollEl.scrollTop = 0;
     wheelTarget = 0;
     userScrolled = false;
