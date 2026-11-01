@@ -1159,17 +1159,17 @@ ul {
   background-image: linear-gradient(135deg, #262626 0%, #050505 100%);
 }
 
-/* More Cases — a draggable CSS 3D "wheel": each thumbnail sits on its own
-   spoke (rotateY + translateZ) around a shared pivot, so the centered one
-   faces the viewer flat while the rest curve away to either side, exactly
-   like emblematica.agency's project-page carousel (minus their WebGL — this
-   is plain CSS 3D transforms, draggable via pointer events in app.js). */
+/* More Cases — a plain horizontally-scrolling row of large portrait cards,
+   same idea as emblematica.agency's project-page carousel. Scrolls natively
+   (trackpad/touch swipe, or click-drag via app.js), snapping each card to
+   center; the centered card's name is shown underneath. */
 .lightbox-more-cases {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
-  margin-top: -1rem;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding: 3rem 0;
 }
 
 .more-cases-kicker {
@@ -1180,48 +1180,49 @@ ul {
   color: rgba(255, 255, 255, 0.45);
 }
 
-.more-cases-wheel {
-  position: relative;
+.more-cases-row {
+  display: flex;
+  gap: 1.25rem;
   width: 100%;
-  height: clamp(160px, 22vw, 260px);
-  perspective: 1400px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
   cursor: grab;
-  touch-action: pan-y;
-  user-select: none;
+  padding: 0 calc(50% - clamp(100px, 9.5vw, 140px));
+  scrollbar-width: none;
 }
 
-.more-cases-wheel.is-dragging {
+.more-cases-row.is-dragging {
   cursor: grabbing;
+  scroll-snap-type: none;
 }
 
-.more-cases-track {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
+.more-cases-row::-webkit-scrollbar {
+  display: none;
 }
 
 .more-cases-item {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: clamp(140px, 16vw, 220px);
-  height: clamp(100px, 12vw, 160px);
-  margin: calc(clamp(100px, 12vw, 160px) / -2) 0 0 calc(clamp(140px, 16vw, 220px) / -2);
-  border-radius: 10px;
+  flex: 0 0 auto;
+  width: clamp(200px, 19vw, 280px);
+  height: clamp(240px, 23vw, 340px);
   overflow: hidden;
   background-color: #111111;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-  backface-visibility: hidden;
+  scroll-snap-align: center;
+  opacity: 0.45;
   transition: opacity 0.3s ease;
+  cursor: pointer;
 }
 
-.more-cases-item img,
-.more-cases-item video {
+.more-cases-item.is-active {
+  opacity: 1;
+}
+
+.more-cases-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .more-cases-name {
@@ -1241,14 +1242,13 @@ ul {
 }
 
 @media (max-width: 640px) {
-  .more-cases-wheel {
-    height: 140px;
+  .more-cases-row {
+    padding: 0 calc(50% - 75px);
   }
 
   .more-cases-item {
-    width: 120px;
-    height: 86px;
-    margin: -43px 0 0 -60px;
+    width: 150px;
+    height: 190px;
   }
 }
 

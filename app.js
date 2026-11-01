@@ -1130,115 +1130,103 @@ function initProjectLightbox() {
     fillMedia(card);
   }
 
-  // --- More Cases wheel -------------------------------------------------
-  // A draggable CSS 3D carousel of the OTHER projects' thumbnails, shown at
-  // the end of the case-study content — same idea as emblematica.agency's
-  // project-page carousel. Their version turned out to be a custom WebGL
-  // canvas (inspected live: `.orbit`/`orbit__gl`), which isn't something
-  // else on this site uses — so this reaches the same look/feel with plain
-  // CSS rotateY/translateZ, but drags it with GSAP's own Draggable +
-  // InertiaPlugin (the project's existing animation engine) for proper
-  // velocity-based momentum/deceleration instead of a hand-rolled drag.
-  // Clicking a thumbnail swaps the lightbox's content to that project in
-  // place, without replaying the open animation.
-  const moreCasesWheel = document.getElementById("moreCasesWheel");
-  const moreCasesTrack = document.getElementById("moreCasesTrack");
+  // --- More Cases row -----------------------------------------------
+  // A plain horizontally-scrolling row of the OTHER projects' thumbnails,
+  // shown at the end of the case-study content — same idea as
+  // emblematica.agency's project-page carousel (theirs is a custom WebGL
+  // canvas; this is just a native scrollable flex row, which is what
+  // actually reads simplest and matches the reference's flat-card look).
+  // Native overflow-x scroll + scroll-snap handles touch/trackpad; a small
+  // mousedown-drag handler adds the same for desktop mouse users. Clicking
+  // a thumbnail swaps the lightbox's content to that project in place.
+  const moreCasesRow = document.getElementById("moreCasesRow");
   const moreCasesName = document.getElementById("moreCasesName");
-  let wheelRotation = 0;
-  let wheelItems = [];
-  let wheelDraggable = null;
-
-  function updateMoreCasesLook() {
-    if (!wheelItems.length) return;
-    let closest = wheelItems[0];
-    let closestDist = Infinity;
-    wheelItems.forEach((item) => {
-      let angle = (item.angle + wheelRotation) % 360;
-      if (angle > 180) angle -= 360;
-      if (angle < -180) angle += 360;
-      const dist = Math.abs(angle);
-      const look = gsap.utils.clamp(0, 1, 1 - dist / 110);
-      gsap.set(item.el, { opacity: 0.35 + 0.65 * look });
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = item;
-      }
-    });
-    moreCasesName.textContent = closest.name;
-  }
+  let moreCasesItems = [];
+  let moreCasesObserver = null;
 
   // Dummy placeholder thumbnails (reusing the same gradient swatches as the
   // case-study content blocks above) stand in for any video-based project —
-  // the wheel only ever shows still images, never an embedded <video>.
+  // the row only ever shows still images, never an embedded <video>.
   const PLACEHOLDER_CLASSES = ["placeholder-a", "placeholder-b", "placeholder-c"];
 
-  function buildMoreCases(excludeCard) {
-    if (!moreCasesWheel || !moreCasesTrack) return;
-    wheelDraggable && wheelDraggable.kill();
-    moreCasesTrack.innerHTML = "";
-    wheelRotation = 0;
-    const others = Array.from(cards).filter((c) => c !== excludeCard);
-    const n = others.length;
-    if (!n) return;
-    const angleStep = 360 / n;
-    const itemWidth = moreCasesWheel.clientWidth > 0 ? Math.min(220, moreCasesWheel.clientWidth * 0.22) : 180;
-    const radius = itemWidth / 2 / Math.tan(Math.PI / n);
+  function setActiveMoreCasesItem(item) {
+    moreCasesItems.forEach((it) => it.el.classList.toggle("is-active", it === item));
+    moreCasesName.textContent = item.name;
+  }
 
-    wheelItems = others.map((otherCard, i) => {
+  function buildMoreCases(excludeCard) {
+    if (!moreCasesRow) return;
+    moreCasesObserver && moreCasesObserver.disconnect();
+    moreCasesRow.innerHTML = "";
+    const others = Array.from(cards).filter((c) => c !== excludeCard);
+    if (!others.length) return;
+
+    moreCasesItems = others.map((otherCard, i) => {
       const slide = otherCard.closest(".project-slide");
-      const name = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+      const name = slide ? (slide.querySelector(".project-heading")?.textContent ?? "") : "";
       const el = document.createElement("div");
       el.className = "more-cases-item";
-      const angle = i * angleStep;
-      el.style.transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
       const source = otherCard.querySelector("img");
       if (source) {
         el.appendChild(source.cloneNode(true));
       } else {
         el.classList.add(PLACEHOLDER_CLASSES[i % PLACEHOLDER_CLASSES.length]);
       }
-      el.dataset.cardIndex = String(cards.indexOf ? Array.from(cards).indexOf(otherCard) : i);
-      moreCasesTrack.appendChild(el);
-      return { el, angle, name, card: otherCard };
+      el.addEventListener("click", () => {
+        if (rowDragMoved) return; // a drag just ended here, not a tap
+        switchToCard(otherCard);
+      });
+      moreCasesRow.appendChild(el);
+      return { el, name, card: otherCard };
     });
 
-    gsap.set(moreCasesTrack, { rotateY: 0 });
-    updateMoreCasesLook();
+    // Whichever card is most centered in the row horizontally is "active" —
+    // tracked with IntersectionObserver against the row itself as root,
+    // using a thin vertical strip through the middle so only the item
+    // actually crossing center counts, not just "any part visible".
+    moreCasesObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const hit = moreCasesItems.find((it) => it.el === entry.target);
+          if (hit) setActiveMoreCasesItem(hit);
+        });
+      },
+      { root: moreCasesRow, threshold: 0, rootMargin: "0px -50% 0px -50%" }
+    );
+    moreCasesItems.forEach((it) => moreCasesObserver.observe(it.el));
+    setActiveMoreCasesItem(moreCasesItems[0]);
+    moreCasesRow.scrollLeft = 0;
+  }
 
-    if (typeof Draggable === "undefined") return;
+  // Simple click-and-drag-to-scroll for desktop mouse users (touch/trackpad
+  // already scroll the row natively via overflow-x). `rowDragMoved` is read
+  // by each item's own click handler above so a drag-release over a
+  // thumbnail doesn't also trigger that thumbnail's click.
+  let rowDragging = false;
+  let rowDragMoved = false;
+  let rowDragStartX = 0;
+  let rowDragStartScroll = 0;
 
-    // Draggable needs a real DOM element to animate; a plain hidden proxy
-    // div stands in, and its own `x` (tracked with inertia) is what drives
-    // the track's rotateY — translating px of horizontal drag into degrees.
-    const proxy = document.createElement("div");
-    const DEG_PER_PX = 0.35;
-    wheelDraggable = Draggable.create(proxy, {
-      type: "x",
-      trigger: moreCasesWheel,
-      inertia: true,
-      allowEventDefault: true,
-      onDrag: function () {
-        wheelRotation = this.x * DEG_PER_PX;
-        gsap.set(moreCasesTrack, { rotateY: wheelRotation });
-        updateMoreCasesLook();
-      },
-      onThrowUpdate: function () {
-        wheelRotation = this.x * DEG_PER_PX;
-        gsap.set(moreCasesTrack, { rotateY: wheelRotation });
-        updateMoreCasesLook();
-      },
-      onPress: function () {
-        moreCasesWheel.classList.add("is-dragging");
-      },
-      onRelease: function () {
-        moreCasesWheel.classList.remove("is-dragging");
-      },
-      onClick: function (e) {
-        const item = e.target.closest(".more-cases-item");
-        const hit = wheelItems.find((w) => w.el === item);
-        if (hit) switchToCard(hit.card);
-      },
-    })[0];
+  if (moreCasesRow) {
+    moreCasesRow.addEventListener("mousedown", (e) => {
+      rowDragging = true;
+      rowDragMoved = false;
+      rowDragStartX = e.clientX;
+      rowDragStartScroll = moreCasesRow.scrollLeft;
+      moreCasesRow.classList.add("is-dragging");
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!rowDragging) return;
+      const deltaX = e.clientX - rowDragStartX;
+      if (Math.abs(deltaX) > 4) rowDragMoved = true;
+      moreCasesRow.scrollLeft = rowDragStartScroll - deltaX;
+    });
+    window.addEventListener("mouseup", () => {
+      if (!rowDragging) return;
+      rowDragging = false;
+      moreCasesRow.classList.remove("is-dragging");
+    });
   }
 
   function switchToCard(card) {

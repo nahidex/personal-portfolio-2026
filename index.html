@@ -16,11 +16,9 @@
     <!-- CSS Stylesheet -->
     <link rel="stylesheet" href="styles.css" />
 
-    <!-- GSAP & ScrollTrigger (3.13.0: first fully-free version with Draggable + InertiaPlugin on the public CDN) -->
+    <!-- GSAP & ScrollTrigger -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/Draggable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/InertiaPlugin.min.js"></script>
 
     <!-- Lenis Smooth Scroll -->
     <link rel="stylesheet" href="https://unpkg.com/lenis@1.1.20/dist/lenis.css" />
@@ -1155,14 +1153,13 @@
             </div>
           </div>
 
-          <!-- More Cases — a draggable 3D "wheel" of the other project
-               thumbnails (same mechanic as emblematica.agency's project
-               pages), with the centered project's name shown underneath. -->
+          <!-- More Cases — a simple horizontally-scrolling row of the other
+               project thumbnails (same idea as emblematica.agency's
+               project pages), with the centered project's name shown
+               underneath. Drag/scroll/swipe to browse, click to switch. -->
           <div class="lightbox-more-cases" id="lightboxMoreCases">
             <span class="more-cases-kicker">More cases</span>
-            <div class="more-cases-wheel" id="moreCasesWheel">
-              <div class="more-cases-track" id="moreCasesTrack"></div>
-            </div>
+            <div class="more-cases-row" id="moreCasesRow"></div>
             <p class="more-cases-name" id="moreCasesName"></p>
           </div>
         </div>
