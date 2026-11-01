@@ -1320,7 +1320,11 @@ function initProjectLightbox() {
     });
 
     const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
-    const ch = Math.round(cw * 0.75);
+    // Matches the reference's actual rendered (WebGL) card proportions —
+    // measured directly off their live page, nearly square — not the 0.75
+    // landscape ratio in their CSS-fallback markup, which only applies when
+    // WebGL isn't running and is never what's actually visually shown.
+    const ch = Math.round(cw * 0.9);
     ringItems.forEach((item) => {
       item.el.style.setProperty("--cw", cw + "px");
       item.el.style.setProperty("--ih", ch + "px");
@@ -1374,7 +1378,7 @@ function initProjectLightbox() {
       const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
       ringItems.forEach((item) => {
         item.el.style.setProperty("--cw", cw + "px");
-        item.el.style.setProperty("--ih", Math.round(cw * 0.75) + "px");
+        item.el.style.setProperty("--ih", Math.round(cw * 0.9) + "px");
       });
       layoutRing();
       renderRing();
