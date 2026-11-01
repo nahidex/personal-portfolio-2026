@@ -1657,8 +1657,8 @@ ul {
    ========================================================================== */
 .creator-section {
   position: relative;
-  background-color: transparent; /* continues the white post-Services/Tech-Stack background */
-  color: #111111;
+  background-color: #dadada; /* emblematica.agency's own "--paper" background */
+  color: #0e0c0d; /* emblematica.agency's own "--ink" text color */
   width: 100%;
   padding: 6rem 0 8rem;
   box-sizing: border-box;
@@ -1666,9 +1666,10 @@ ul {
 }
 
 .creator-shell {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 4vw;
   box-sizing: border-box;
 }
 
@@ -1679,13 +1680,13 @@ ul {
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.45);
+  color: rgba(14, 12, 13, 0.5);
   text-align: center;
 }
 
 .creator-title {
   margin: 0 auto;
-  max-width: 900px;
+  max-width: 1100px;
   font-family:
     "Plus Jakarta Sans",
     -apple-system,
@@ -1748,7 +1749,7 @@ ul {
 }
 
 .creator-portrait {
-  width: min(480px, 46vw);
+  width: min(1100px, 68vw);
   flex-shrink: 0;
   margin: 0;
 }
@@ -1761,7 +1762,7 @@ ul {
 
 .creator-copy {
   position: absolute;
-  width: clamp(160px, 16vw, 220px);
+  width: clamp(220px, 20vw, 320px);
   pointer-events: none;
 }
 
@@ -1786,7 +1787,7 @@ ul {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 13px;
+  font-size: clamp(14px, 1.1vw, 18px);
   font-weight: 800;
   line-height: 1.3;
   text-transform: uppercase;
@@ -1803,13 +1804,13 @@ ul {
     "Segoe UI",
     Roboto,
     sans-serif;
-  font-size: 13px;
+  font-size: clamp(14px, 1.1vw, 18px);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   text-decoration: underline;
   text-underline-offset: 4px;
-  color: #111111;
+  color: #0e0c0d;
   pointer-events: auto;
 }
 
@@ -1821,7 +1822,7 @@ ul {
   }
 
   .creator-portrait {
-    width: min(360px, 70vw);
+    width: min(480px, 85vw);
   }
 
   .creator-copy {
