@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initServicesScroll();
   initServicesHorizontalScroll();
   initTechWheel();
+  initCreatorSpotlight();
   initProjectMediaCursor();
   initProjectLightbox();
   initFooter();
@@ -946,6 +947,34 @@ function initTechWheel() {
     onRefresh: measure,
     onUpdate: (self) => render(self.progress),
   });
+}
+
+/* ==========================================================================
+   Who's On Back (creator spotlight) — plain IntersectionObserver + CSS
+   transitions, matching emblematica.agency's own mechanic exactly: toggle
+   one `.is-visible` class on the section once it enters the viewport, and
+   let each line/block's own `--line-delay`/`--block-delay` stagger the
+   reveal (no GSAP/ScrollTrigger needed here, it's a one-shot reveal).
+   ========================================================================== */
+function initCreatorSpotlight() {
+  const section = document.getElementById("whos-on-back");
+  if (!section) return;
+
+  if (!("IntersectionObserver" in window)) {
+    section.classList.add("is-visible");
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries, obs) => {
+      if (entries[0].isIntersecting) {
+        section.classList.add("is-visible");
+        obs.disconnect();
+      }
+    },
+    { threshold: 0.25 }
+  );
+  observer.observe(section);
 }
 
 /* ==========================================================================
