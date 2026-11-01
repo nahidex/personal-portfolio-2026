@@ -1159,10 +1159,11 @@ ul {
   background-image: linear-gradient(135deg, #262626 0%, #050505 100%);
 }
 
-/* More Cases — a plain horizontally-scrolling row of large portrait cards,
-   same idea as emblematica.agency's project-page carousel. Scrolls natively
-   (trackpad/touch swipe, or click-drag via app.js), snapping each card to
-   center; the centered card's name is shown underneath. */
+/* More Cases — a horizontally auto-scrolling row of large portrait cards,
+   same idea as emblematica.agency's project-page carousel: it continuously
+   drifts left-to-right, each card tilting in 3D (coverflow-style) based on
+   its distance from center, and settles flat as it passes through the
+   middle. Pauses on hover/drag so it's still readable/browsable. */
 .lightbox-more-cases {
   display: flex;
   flex-direction: column;
@@ -1185,7 +1186,7 @@ ul {
   gap: 1.25rem;
   width: 100%;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  perspective: 1400px;
   cursor: grab;
   padding: 0 calc(50% - clamp(100px, 9.5vw, 140px));
   scrollbar-width: none;
@@ -1193,7 +1194,6 @@ ul {
 
 .more-cases-row.is-dragging {
   cursor: grabbing;
-  scroll-snap-type: none;
 }
 
 .more-cases-row::-webkit-scrollbar {
@@ -1206,14 +1206,8 @@ ul {
   height: clamp(240px, 23vw, 340px);
   overflow: hidden;
   background-color: #111111;
-  scroll-snap-align: center;
-  opacity: 0.45;
-  transition: opacity 0.3s ease;
   cursor: pointer;
-}
-
-.more-cases-item.is-active {
-  opacity: 1;
+  will-change: transform, opacity;
 }
 
 .more-cases-item img {

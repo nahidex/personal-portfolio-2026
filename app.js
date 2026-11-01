@@ -1131,32 +1131,82 @@ function initProjectLightbox() {
   }
 
   // --- More Cases row -----------------------------------------------
-  // A plain horizontally-scrolling row of the OTHER projects' thumbnails,
+  // A horizontally auto-scrolling row of the OTHER projects' thumbnails,
   // shown at the end of the case-study content — same idea as
-  // emblematica.agency's project-page carousel (theirs is a custom WebGL
-  // canvas; this is just a native scrollable flex row, which is what
-  // actually reads simplest and matches the reference's flat-card look).
-  // Native overflow-x scroll + scroll-snap handles touch/trackpad; a small
-  // mousedown-drag handler adds the same for desktop mouse users. Clicking
-  // a thumbnail swaps the lightbox's content to that project in place.
+  // emblematica.agency's project-page carousel. It continuously drifts
+  // left-to-right (pausing on hover/drag so it stays readable/browsable),
+  // and each card tilts in 3D based on its distance from center — a plain
+  // coverflow computed from real-time `getBoundingClientRect()` positions
+  // each frame, no custom drag physics needed. Clicking a thumbnail swaps
+  // the lightbox's content to that project in place.
   const moreCasesRow = document.getElementById("moreCasesRow");
   const moreCasesName = document.getElementById("moreCasesName");
   let moreCasesItems = [];
-  let moreCasesObserver = null;
+  let autoScrollPaused = false;
+  let autoResumeTimer = null;
+
+  const AUTO_PX_PER_FRAME = 0.6;
+  const TILT_RANGE_PX = 260;
+  const MAX_TILT_DEG = 26;
 
   // Dummy placeholder thumbnails (reusing the same gradient swatches as the
   // case-study content blocks above) stand in for any video-based project —
   // the row only ever shows still images, never an embedded <video>.
   const PLACEHOLDER_CLASSES = ["placeholder-a", "placeholder-b", "placeholder-c"];
 
-  function setActiveMoreCasesItem(item) {
-    moreCasesItems.forEach((it) => it.el.classList.toggle("is-active", it === item));
-    moreCasesName.textContent = item.name;
+  function applyCoverflow() {
+    if (!moreCasesRow || !moreCasesItems.length) return;
+    const rowRect = moreCasesRow.getBoundingClientRect();
+    const centerX = rowRect.left + rowRect.width / 2;
+    let closest = moreCasesItems[0];
+    let closestDist = Infinity;
+    moreCasesItems.forEach((item) => {
+      const r = item.el.getBoundingClientRect();
+      const delta = r.left + r.width / 2 - centerX;
+      const t = gsap.utils.clamp(-1, 1, delta / TILT_RANGE_PX);
+      gsap.set(item.el, {
+        rotateY: -t * MAX_TILT_DEG,
+        scale: 1 - Math.abs(t) * 0.08,
+        opacity: 1 - Math.abs(t) * 0.55,
+      });
+      const dist = Math.abs(delta);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = item;
+      }
+    });
+    if (moreCasesName.textContent !== closest.name) moreCasesName.textContent = closest.name;
+  }
+
+  // One shared ticker drives both the auto-scroll drift and the coverflow
+  // tilt — registered once, not per rebuild, and a no-op whenever the
+  // lightbox is closed or the row has nothing in it.
+  gsap.ticker.add(() => {
+    if (!isOpen || !moreCasesRow || !moreCasesItems.length) return;
+    if (!autoScrollPaused) {
+      const maxScroll = moreCasesRow.scrollWidth - moreCasesRow.clientWidth;
+      if (maxScroll > 0) {
+        moreCasesRow.scrollLeft += AUTO_PX_PER_FRAME;
+        if (moreCasesRow.scrollLeft >= maxScroll - 1) moreCasesRow.scrollLeft = 0;
+      }
+    }
+    applyCoverflow();
+  });
+
+  function pauseAutoScroll() {
+    autoScrollPaused = true;
+    clearTimeout(autoResumeTimer);
+  }
+
+  function resumeAutoScrollSoon() {
+    clearTimeout(autoResumeTimer);
+    autoResumeTimer = setTimeout(() => {
+      autoScrollPaused = false;
+    }, 600);
   }
 
   function buildMoreCases(excludeCard) {
     if (!moreCasesRow) return;
-    moreCasesObserver && moreCasesObserver.disconnect();
     moreCasesRow.innerHTML = "";
     const others = Array.from(cards).filter((c) => c !== excludeCard);
     if (!others.length) return;
@@ -1180,41 +1230,32 @@ function initProjectLightbox() {
       return { el, name, card: otherCard };
     });
 
-    // Whichever card is most centered in the row horizontally is "active" —
-    // tracked with IntersectionObserver against the row itself as root,
-    // using a thin vertical strip through the middle so only the item
-    // actually crossing center counts, not just "any part visible".
-    moreCasesObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const hit = moreCasesItems.find((it) => it.el === entry.target);
-          if (hit) setActiveMoreCasesItem(hit);
-        });
-      },
-      { root: moreCasesRow, threshold: 0, rootMargin: "0px -50% 0px -50%" }
-    );
-    moreCasesItems.forEach((it) => moreCasesObserver.observe(it.el));
-    setActiveMoreCasesItem(moreCasesItems[0]);
     moreCasesRow.scrollLeft = 0;
+    applyCoverflow();
   }
 
   // Simple click-and-drag-to-scroll for desktop mouse users (touch/trackpad
   // already scroll the row natively via overflow-x). `rowDragMoved` is read
   // by each item's own click handler above so a drag-release over a
-  // thumbnail doesn't also trigger that thumbnail's click.
+  // thumbnail doesn't also trigger that thumbnail's click. Both drag and
+  // plain hover pause the auto-scroll so the row stays put while browsing.
   let rowDragging = false;
   let rowDragMoved = false;
   let rowDragStartX = 0;
   let rowDragStartScroll = 0;
 
   if (moreCasesRow) {
+    moreCasesRow.addEventListener("mouseenter", pauseAutoScroll);
+    moreCasesRow.addEventListener("mouseleave", () => {
+      if (!rowDragging) resumeAutoScrollSoon();
+    });
     moreCasesRow.addEventListener("mousedown", (e) => {
       rowDragging = true;
       rowDragMoved = false;
       rowDragStartX = e.clientX;
       rowDragStartScroll = moreCasesRow.scrollLeft;
       moreCasesRow.classList.add("is-dragging");
+      pauseAutoScroll();
     });
     window.addEventListener("mousemove", (e) => {
       if (!rowDragging) return;
@@ -1226,6 +1267,7 @@ function initProjectLightbox() {
       if (!rowDragging) return;
       rowDragging = false;
       moreCasesRow.classList.remove("is-dragging");
+      resumeAutoScrollSoon();
     });
   }
 
