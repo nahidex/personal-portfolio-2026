@@ -1133,15 +1133,20 @@ function initProjectLightbox() {
   // --- More Cases wheel -------------------------------------------------
   // A draggable CSS 3D carousel of the OTHER projects' thumbnails, shown at
   // the end of the case-study content — same idea as emblematica.agency's
-  // project-page carousel (their version is WebGL; this reaches the same
-  // look with plain CSS rotateY/translateZ, since nothing else on this site
-  // uses a 3D/canvas library). Clicking a thumbnail swaps the lightbox's
-  // content to that project in place, without replaying the open animation.
+  // project-page carousel. Their version turned out to be a custom WebGL
+  // canvas (inspected live: `.orbit`/`orbit__gl`), which isn't something
+  // else on this site uses — so this reaches the same look/feel with plain
+  // CSS rotateY/translateZ, but drags it with GSAP's own Draggable +
+  // InertiaPlugin (the project's existing animation engine) for proper
+  // velocity-based momentum/deceleration instead of a hand-rolled drag.
+  // Clicking a thumbnail swaps the lightbox's content to that project in
+  // place, without replaying the open animation.
   const moreCasesWheel = document.getElementById("moreCasesWheel");
   const moreCasesTrack = document.getElementById("moreCasesTrack");
   const moreCasesName = document.getElementById("moreCasesName");
   let wheelRotation = 0;
   let wheelItems = [];
+  let wheelDraggable = null;
 
   function updateMoreCasesLook() {
     if (!wheelItems.length) return;
@@ -1162,8 +1167,14 @@ function initProjectLightbox() {
     moreCasesName.textContent = closest.name;
   }
 
+  // Dummy placeholder thumbnails (reusing the same gradient swatches as the
+  // case-study content blocks above) stand in for any video-based project —
+  // the wheel only ever shows still images, never an embedded <video>.
+  const PLACEHOLDER_CLASSES = ["placeholder-a", "placeholder-b", "placeholder-c"];
+
   function buildMoreCases(excludeCard) {
     if (!moreCasesWheel || !moreCasesTrack) return;
+    wheelDraggable && wheelDraggable.kill();
     moreCasesTrack.innerHTML = "";
     wheelRotation = 0;
     const others = Array.from(cards).filter((c) => c !== excludeCard);
@@ -1180,64 +1191,54 @@ function initProjectLightbox() {
       el.className = "more-cases-item";
       const angle = i * angleStep;
       el.style.transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
-      const source = otherCard.querySelector("img, video");
+      const source = otherCard.querySelector("img");
       if (source) {
-        const clone = source.cloneNode(true);
-        if (clone.tagName === "VIDEO") {
-          clone.autoplay = true;
-          clone.muted = true;
-          clone.loop = true;
-          clone.playsInline = true;
-        }
-        el.appendChild(clone);
+        el.appendChild(source.cloneNode(true));
+      } else {
+        el.classList.add(PLACEHOLDER_CLASSES[i % PLACEHOLDER_CLASSES.length]);
       }
-      el.addEventListener("click", () => {
-        if (dragMoved) return; // a drag just ended on this item, not a tap
-        switchToCard(otherCard);
-      });
+      el.dataset.cardIndex = String(cards.indexOf ? Array.from(cards).indexOf(otherCard) : i);
       moreCasesTrack.appendChild(el);
       return { el, angle, name, card: otherCard };
     });
 
     gsap.set(moreCasesTrack, { rotateY: 0 });
     updateMoreCasesLook();
-  }
 
-  let dragging = false;
-  let dragMoved = false;
-  let dragStartX = 0;
-  let dragStartRotation = 0;
+    if (typeof Draggable === "undefined") return;
 
-  function onDragStart(e) {
-    dragging = true;
-    dragMoved = false;
-    dragStartX = e.clientX;
-    dragStartRotation = wheelRotation;
-    moreCasesWheel.classList.add("is-dragging");
-    // Track move/up on the window rather than via setPointerCapture — capture
-    // also redirects the subsequent synthetic `click` to the wheel itself,
-    // which would stop a plain tap on a thumbnail from ever reaching it.
-    window.addEventListener("pointermove", onDragMove);
-    window.addEventListener("pointerup", onDragEnd);
-  }
-  function onDragMove(e) {
-    if (!dragging) return;
-    const deltaX = e.clientX - dragStartX;
-    if (Math.abs(deltaX) > 4) dragMoved = true;
-    wheelRotation = dragStartRotation + deltaX * 0.35;
-    gsap.set(moreCasesTrack, { rotateY: wheelRotation });
-    updateMoreCasesLook();
-  }
-  function onDragEnd() {
-    if (!dragging) return;
-    dragging = false;
-    moreCasesWheel.classList.remove("is-dragging");
-    window.removeEventListener("pointermove", onDragMove);
-    window.removeEventListener("pointerup", onDragEnd);
-  }
-
-  if (moreCasesWheel) {
-    moreCasesWheel.addEventListener("pointerdown", onDragStart);
+    // Draggable needs a real DOM element to animate; a plain hidden proxy
+    // div stands in, and its own `x` (tracked with inertia) is what drives
+    // the track's rotateY — translating px of horizontal drag into degrees.
+    const proxy = document.createElement("div");
+    const DEG_PER_PX = 0.35;
+    wheelDraggable = Draggable.create(proxy, {
+      type: "x",
+      trigger: moreCasesWheel,
+      inertia: true,
+      allowEventDefault: true,
+      onDrag: function () {
+        wheelRotation = this.x * DEG_PER_PX;
+        gsap.set(moreCasesTrack, { rotateY: wheelRotation });
+        updateMoreCasesLook();
+      },
+      onThrowUpdate: function () {
+        wheelRotation = this.x * DEG_PER_PX;
+        gsap.set(moreCasesTrack, { rotateY: wheelRotation });
+        updateMoreCasesLook();
+      },
+      onPress: function () {
+        moreCasesWheel.classList.add("is-dragging");
+      },
+      onRelease: function () {
+        moreCasesWheel.classList.remove("is-dragging");
+      },
+      onClick: function (e) {
+        const item = e.target.closest(".more-cases-item");
+        const hit = wheelItems.find((w) => w.el === item);
+        if (hit) switchToCard(hit.card);
+      },
+    })[0];
   }
 
   function switchToCard(card) {
