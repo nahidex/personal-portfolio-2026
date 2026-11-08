@@ -2841,6 +2841,9 @@ html.lenis body {
   }
 
   .projects-horizontal-wrapper {
+    display: block; /* was flex (row, inherited from desktop) — left .projects-track
+    with no definite width to resolve against, so .project-slide's width: 100%
+    fell back to shrink-to-fit content size instead of filling the viewport */
     height: auto;
     min-height: auto;
     overflow: visible;
@@ -2848,7 +2851,10 @@ html.lenis body {
 
   .projects-track {
     flex-direction: column;
+    align-items: stretch;
     height: auto;
+    padding-right: 0; /* desktop's end-of-scroll breathing room — was shrinking
+    every slide's resolved 100% width by ~104px on mobile, where it no longer applies */
     transform: none !important;
   }
 
