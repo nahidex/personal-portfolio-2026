@@ -2105,31 +2105,43 @@ function initTestimonialsScroll() {
   // tween", which was placing the fade way too early.
   const gapToPinStart = 0.95 * window.innerHeight;
   const pinReleasePoint = gapToPinStart + pinDistance;
-  const colorTl = gsap.timeline({
-    scrollTrigger: {
-      trigger: section,
-      start: "top 95%",
-      end: "+=" + (pinReleasePoint + fadeOutDur),
-      scrub: 0.6,
-      invalidateOnRefresh: true,
-    },
+
+  // Below 901px the testimonials/services pins never run (see their own
+  // matchMedia gates further down), so the real scroll distance through this
+  // whole stretch is far shorter than `pinReleasePoint` assumes — scrubbing
+  // against that pixel range left the wash stuck mid-fade (often fully black)
+  // by the time mobile reaches Services, making its dark text unreadable.
+  // Simplest fix: the wash itself only exists on the same breakpoint as the
+  // pins it was timed against.
+  const colorMM = gsap.matchMedia();
+  colorMM.add("(min-width: 901px)", () => {
+    const colorTl = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: "top 95%",
+        end: "+=" + (pinReleasePoint + fadeOutDur),
+        scrub: 0.6,
+        invalidateOnRefresh: true,
+      },
+    });
+    // A black `::before` overlay faded via a CSS custom property instead of
+    // tweening `backgroundColor` directly — opacity is compositor-only, so
+    // this scrubs without repainting the container every tick (backgroundColor
+    // was, which dropped frames through this whole section).
+    colorTl.fromTo(
+      bgTarget,
+      { "--wash-opacity": 0 },
+      { "--wash-opacity": 1, ease: "none", duration: darkenDur },
+      0
+    );
+    // (implicit hold at black through the pin — no tween needed, it just stays)
+    colorTl.to(bgTarget, { "--wash-opacity": 0, ease: "none", duration: fadeOutDur }, pinReleasePoint);
+
+    return () => {
+      colorTl.kill();
+      gsap.set(bgTarget, { "--wash-opacity": 0 });
+    };
   });
-  // A black `::before` overlay faded via a CSS custom property instead of
-  // tweening `backgroundColor` directly — opacity is compositor-only, so
-  // this scrubs without repainting the container every tick (backgroundColor
-  // was, which dropped frames through this whole section).
-  colorTl.fromTo(
-    bgTarget,
-    { "--wash-opacity": 0 },
-    { "--wash-opacity": 1, ease: "none", duration: darkenDur },
-    0
-  );
-  // (implicit hold at black through the pin — no tween needed, it just stays)
-  colorTl.to(
-    bgTarget,
-    { "--wash-opacity": 0, ease: "none", duration: fadeOutDur },
-    pinReleasePoint
-  );
 
   // --- Card deck layout -----------------------------------------------
   // Each card's look is driven purely by its signed distance from the

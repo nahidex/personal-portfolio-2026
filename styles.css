@@ -2275,11 +2275,13 @@ ul {
 
   .creator-portrait {
     grid-column: 1;
+    grid-row: auto;
     width: min(480px, 85vw);
   }
 
   .creator-copy {
     grid-column: 1;
+    grid-row: auto;
     justify-self: center;
     max-width: 360px;
     text-align: center;
