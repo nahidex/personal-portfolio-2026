@@ -1018,6 +1018,7 @@ function initProjectLightbox() {
   const clientEl = document.getElementById("lightboxClient");
   const headingEl = document.getElementById("lightboxHeading");
   const yearEl = document.getElementById("lightboxYear");
+  const leadClientEl = document.getElementById("lightboxLeadClient");
   const cards = document.querySelectorAll(".project-media-card");
 
   if (!lightbox || !panel || !scrollEl || !hero || !mediaSlot || !titleBar || cards.length === 0)
@@ -1105,11 +1106,13 @@ function initProjectLightbox() {
   function applyProject(card) {
     activeCard = card;
     const slide = card.closest(".project-slide");
-    clientEl.textContent = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    const client = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    clientEl.textContent = client;
     headingEl.textContent = slide
       ? (slide.querySelector(".project-heading")?.textContent ?? "")
       : "";
     yearEl.textContent = slide ? (slide.querySelector(".project-year")?.textContent ?? "") : "";
+    if (leadClientEl) leadClientEl.textContent = client || "the client";
     fillMedia(card);
   }
 
