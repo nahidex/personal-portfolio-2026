@@ -97,12 +97,58 @@
     <main>
       <!-- Everything the preloader curtain carries up with it -->
       <div class="hero-stage" id="heroStage">
+        <!-- Decorative multiplayer-style cursors — "You" follows the real mouse,
+             the rest wander the whole hero stage at random -->
+        <div class="hero-cursors" id="heroCursors" aria-hidden="true">
+          <div class="hero-cursor" data-cursor="you" style="--cursor-color: #01c45e; --cursor-fg: #052814; left: 0; top: 0; opacity: 0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"
+                fill="currentColor"
+              />
+            </svg>
+            <span class="hero-cursor-label">You</span>
+          </div>
+          <div class="hero-cursor" style="--cursor-color: #ff6b4a; --cursor-fg: #3a0e02; left: 62%; top: 10%">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"
+                fill="currentColor"
+              />
+            </svg>
+            <span class="hero-cursor-label">Alex</span>
+          </div>
+          <div class="hero-cursor" style="--cursor-color: #4f46e5; --cursor-fg: #ffffff; left: 40%; top: 55%">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"
+                fill="currentColor"
+              />
+            </svg>
+            <span class="hero-cursor-label">Mia</span>
+          </div>
+          <div class="hero-cursor" style="--cursor-color: #ec4899; --cursor-fg: #ffffff; left: 20%; top: 70%">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"
+                fill="currentColor"
+              />
+            </svg>
+            <span class="hero-cursor-label">Sam</span>
+          </div>
+        </div>
+
         <!-- Hero Section -->
         <section class="hero-section">
         <div class="hero-container">
           <div class="hero-left">
-            <div class="availability-badge">
-              <span aria-hidden="true">&gt;</span> Available for work<span class="availability-cursor" aria-hidden="true">&#9608;</span>
+            <div
+              class="availability-badge"
+              aria-label="Available for work. Open to new projects. Booking Q1 2026. Status: open for work. Whoami: Product Designer. Let's build something. Accepting new clients. Design, Build, Ship."
+            >
+              <span aria-hidden="true">&gt;</span>
+              <span class="availability-text" id="availabilityText" aria-hidden="true"></span
+              ><span class="availability-cursor" aria-hidden="true">&#9608;</span>
             </div>
             <h1 class="hero-statement">
               I design systems<br />

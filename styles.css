@@ -263,7 +263,6 @@ ul {
   padding: 0.4rem 0.9rem;
   border-radius: 9999px;
   transition:
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
     background-color 0.25s ease,
     box-shadow 0.25s ease;
   box-shadow:
@@ -276,7 +275,6 @@ ul {
   opacity: 1;
   background-color: #01c45e;
   color: #000000;
-  transform: translateY(-1px) scale(1.03);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.1),
     0 6px 14px rgba(0, 0, 0, 0.1),
@@ -340,6 +338,11 @@ ul {
 /* ==========================================================================
    Hero Section
    ========================================================================== */
+.hero-stage {
+  position: relative;
+  cursor: none; /* the green "You" cursor replaces the system pointer here */
+}
+
 .hero-section {
   background-color: #ffffff;
   padding: 9rem 0 6rem;
@@ -355,6 +358,51 @@ ul {
   justify-content: space-between;
   align-items: flex-start;
   position: relative;
+}
+
+/* Decorative multiplayer-style cursors, each wandering the hero at random
+   (see initHeroCursors) — "You" is always green, the rest get their own
+   color via --cursor-color. */
+.hero-cursors {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hero-cursor {
+  position: absolute;
+  color: var(--cursor-color, #01c45e);
+  will-change: transform;
+}
+
+.hero-cursor svg {
+  display: block;
+}
+
+/* Floats below-right of the arrow tip, detached rather than inline with
+   it — matches a real cursor-presence bubble (arrow marks the exact point,
+   label trails behind it). */
+.hero-cursor-label {
+  position: absolute;
+  left: 14px;
+  top: 20px;
+  background-color: var(--cursor-color, #01c45e);
+  color: var(--cursor-fg, #000000);
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .hero-left {
@@ -539,7 +587,7 @@ ul {
    ========================================================================== */
 .hero-sub-section {
   background-color: #ffffff;
-  padding: 0 0 10.5rem;
+  padding: 0 0 9rem;
   position: relative;
 }
 
@@ -2192,9 +2240,9 @@ ul {
     Roboto,
     sans-serif;
   font-size: clamp(14px, 1.1vw, 18px);
-  font-weight: 600;
-  line-height: 1.3;
-  text-transform: none;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
   letter-spacing: -0.01em;
 }
 

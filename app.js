@@ -9,6 +9,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initScrollNavbar();
   initMobileMenu();
   initMarquee();
+  initAvailabilityTyper();
+  initCtaRubberButton();
+  initHeroCursors();
   initAboutBend();
   initTextReveal();
   initWorksReveal();
@@ -22,6 +25,186 @@ document.addEventListener("DOMContentLoaded", () => {
   initProjectLightbox();
   initFooter();
 });
+
+/* ==========================================================================
+   "Book 30 min Call" nav button — soft rubber-band feel: squishes in on
+   impact then springs back past its own size on an elastic ease (like
+   catching something thrown from a distance), tilts in 3D toward the
+   cursor's position like a physical card, and skews slightly along the
+   cursor's own travel direction while hovered, like it's stretching to follow.
+   ========================================================================== */
+function initCtaRubberButton() {
+  const btn = document.querySelector(".nav-cta-btn");
+  if (!btn || typeof gsap === "undefined") return;
+
+  gsap.set(btn, { transformPerspective: 500, transformOrigin: "50% 50%" });
+  let lastX = 0;
+
+  btn.addEventListener("pointerenter", (e) => {
+    lastX = e.clientX;
+    gsap.killTweensOf(btn);
+    gsap.fromTo(
+      btn,
+      { scale: 0.86, skewX: 0, rotateX: 0, rotateY: 0 },
+      { scale: 1, skewX: 0, duration: 1.1, ease: "elastic.out(1, 0.35)" }
+    );
+  });
+
+  btn.addEventListener("pointermove", (e) => {
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    const skew = gsap.utils.clamp(-14, 14, dx * 2.2);
+
+    const rect = btn.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5; // -0.5..0.5 across the button
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    const rotateY = gsap.utils.clamp(-18, 18, px * 36);
+    const rotateX = gsap.utils.clamp(-18, 18, -py * 36);
+
+    gsap.to(btn, { skewX: skew, rotateX, rotateY, duration: 0.35, ease: "power2.out" });
+  });
+
+  btn.addEventListener("pointerleave", () => {
+    gsap.killTweensOf(btn);
+    gsap.to(btn, {
+      scale: 1,
+      skewX: 0,
+      rotateX: 0,
+      rotateY: 0,
+      duration: 1.2,
+      ease: "elastic.out(1, 0.3)",
+    });
+  });
+}
+
+/* ==========================================================================
+   Hero decorative cursors — "You" (green) tracks the real mouse position
+   over the hero stage; the rest drift to random spots at their own pace,
+   like a multiplayer doc's live cursors.
+   ========================================================================== */
+function initHeroCursors() {
+  const stage = document.getElementById("heroStage");
+  const layer = document.getElementById("heroCursors");
+  if (!stage || !layer || typeof gsap === "undefined") return;
+
+  const youCursor = layer.querySelector('[data-cursor="you"]');
+  const wanderCursors = gsap.utils.toArray(
+    layer.querySelectorAll(".hero-cursor:not([data-cursor='you'])")
+  );
+
+  wanderCursors.forEach((cursor) => {
+    // Its CSS left/top% is the anchor; x/y below is an OFFSET from that
+    // anchor, not an absolute position — mixing the two up previously let
+    // cursors drift way past the stage's edge.
+    const baseLeft = (parseFloat(cursor.style.left) / 100) * layer.clientWidth;
+    const baseTop = (parseFloat(cursor.style.top) / 100) * layer.clientHeight;
+    let x = 0;
+    let y = 0;
+
+    function wander() {
+      // The label floats outside the arrow's own box (absolutely offset in
+      // CSS), so pad the bound by its reach instead of just the arrow's size.
+      const minX = -baseLeft;
+      const maxX = Math.max(minX, layer.clientWidth - (cursor.offsetWidth + 90) - baseLeft);
+      const minY = -baseTop;
+      const maxY = Math.max(minY, layer.clientHeight - (cursor.offsetHeight + 46) - baseTop);
+      // Step a limited distance from where it already is, instead of
+      // teleporting anywhere in the stage — keeps the drift calm/local.
+      const stepX = (Math.random() - 0.5) * layer.clientWidth * 0.14;
+      const stepY = (Math.random() - 0.5) * layer.clientHeight * 0.14;
+      const targetX = gsap.utils.clamp(minX, maxX, x + stepX);
+      const targetY = gsap.utils.clamp(minY, maxY, y + stepY);
+
+      // A real hand doesn't glide at one constant speed the whole way — it's
+      // quick-then-settle, scaled by how far it's actually travelling, with
+      // an occasional small overshoot-and-correct like a real pointer
+      // reacting to its own momentum.
+      const dist = Math.hypot(targetX - x, targetY - y);
+      const duration = gsap.utils.clamp(0.35, 1.9, 0.25 + dist / 340);
+      const overshoots = Math.random() < 0.35;
+
+      gsap.to(cursor, {
+        x: targetX,
+        y: targetY,
+        duration,
+        ease: overshoots ? "back.out(1.6)" : "power3.out",
+        onComplete: () => {
+          x = targetX;
+          y = targetY;
+          // Idle dwell between moves — a human pauses to read/think before
+          // the next move, not hop continuously.
+          gsap.delayedCall(0.6 + Math.random() * 2.2, wander);
+        },
+      });
+    }
+
+    gsap.delayedCall(Math.random() * 2, wander);
+  });
+
+  if (youCursor) {
+    const xTo = gsap.quickTo(youCursor, "x", { duration: 0.35, ease: "power3.out" });
+    const yTo = gsap.quickTo(youCursor, "y", { duration: 0.35, ease: "power3.out" });
+
+    stage.addEventListener("mousemove", (e) => {
+      const rect = stage.getBoundingClientRect();
+      xTo(e.clientX - rect.left);
+      yTo(e.clientY - rect.top);
+      gsap.to(youCursor, { opacity: 1, duration: 0.2 });
+    });
+
+    stage.addEventListener("mouseleave", () => {
+      gsap.to(youCursor, { opacity: 0, duration: 0.3 });
+    });
+  }
+}
+
+/* ==========================================================================
+   Hero "Available for work" badge — types a phrase out terminal-style,
+   holds, deletes it back down, then moves to the next phrase and loops
+   (the cursor's own blink is pure CSS and keeps going throughout).
+   ========================================================================== */
+function initAvailabilityTyper() {
+  const textEl = document.getElementById("availabilityText");
+  if (!textEl) return;
+
+  const PHRASES = [
+    "Available for work",
+    "Open to new projects",
+    "Booking Q1 2026",
+    "status: open_for_work",
+    "whoami → Product Designer",
+    "npm run hire-me",
+    "Let's build something",
+    "Accepting new clients",
+    "Design • Build • Ship",
+  ];
+  const TYPE_MS = 65;
+  const DELETE_MS = 35;
+  const HOLD_MS = 2200;
+  const PAUSE_MS = 500;
+
+  function loop(phraseIndex, i = 0) {
+    const phrase = PHRASES[phraseIndex];
+    if (i <= phrase.length) {
+      textEl.textContent = phrase.slice(0, i);
+      setTimeout(() => loop(phraseIndex, i + 1), TYPE_MS);
+    } else {
+      setTimeout(() => erase(phraseIndex, phrase.length), HOLD_MS);
+    }
+  }
+
+  function erase(phraseIndex, i) {
+    const phrase = PHRASES[phraseIndex];
+    if (i >= 0) {
+      textEl.textContent = phrase.slice(0, i);
+      setTimeout(() => erase(phraseIndex, i - 1), DELETE_MS);
+    } else {
+      setTimeout(() => loop((phraseIndex + 1) % PHRASES.length), PAUSE_MS);
+    }
+  }
+
+  loop(0);
+}
 
 /* ==========================================================================
    Preloader — cycles "hello" in a handful of languages on a black curtain,
