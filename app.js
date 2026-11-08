@@ -786,7 +786,19 @@ function initProjectsHorizontalScroll() {
       },
     });
 
+    // The pin's length is the track's width, so a track that changes width
+    // without the window resizing (card CSS edits, a slide added) would leave
+    // dead scroll at the end until something else forced a refresh.
+    let lastWidth = track.scrollWidth;
+    const trackObserver = new ResizeObserver(() => {
+      if (track.scrollWidth === lastWidth) return;
+      lastWidth = track.scrollWidth;
+      ScrollTrigger.refresh();
+    });
+    trackObserver.observe(track);
+
     return () => {
+      trackObserver.disconnect();
       horizontalTween.kill();
       gsap.set(track, { clearProps: "all" });
     };

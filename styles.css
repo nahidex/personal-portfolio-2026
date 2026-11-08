@@ -839,7 +839,7 @@ ul {
   flex-shrink: 0;
   position: relative;
   /* Width matches left gutter + cards row width matching Image 2 */
-  width: calc(clamp(6.5rem, 9.5vw, 11rem) + clamp(880px, 72vw, 1360px));
+  width: calc(clamp(6.5rem, 9.5vw, 11rem) + clamp(680px, 55vw, 1020px));
   box-sizing: border-box;
 }
 
