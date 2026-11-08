@@ -2879,6 +2879,10 @@ html.lenis body {
     padding-bottom: 0;
   }
 
+  .project-cards-row {
+    grid-template-columns: 1fr;
+  }
+
   .project-media-grid {
     grid-template-columns: 1fr;
     gap: 1.25rem;
