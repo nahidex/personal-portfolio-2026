@@ -386,8 +386,8 @@ ul {
    label trails behind it). */
 .hero-cursor-label {
   position: absolute;
-  left: 14px;
-  top: 20px;
+  left: 10px;
+  top: 14px;
   background-color: var(--cursor-color, #01c45e);
   color: var(--cursor-fg, #000000);
   font-family:

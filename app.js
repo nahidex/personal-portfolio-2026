@@ -91,6 +91,30 @@ function initHeroCursors() {
   const wanderCursors = gsap.utils.toArray(
     layer.querySelectorAll(".hero-cursor:not([data-cursor='you'])")
   );
+  const photo = document.querySelector(".profile-img-container");
+
+  // The wandering cursors should steer clear of the profile photo entirely,
+  // not just lose the z-index fight against it — a no-go zone (in the same
+  // x/y-offset space as the cursors themselves) they'll never pick as a target.
+  function getPhotoExclusionZone() {
+    if (!photo) return null;
+    const layerRect = layer.getBoundingClientRect();
+    const photoRect = photo.getBoundingClientRect();
+    const pad = 24;
+    return {
+      left: photoRect.left - layerRect.left - pad,
+      right: photoRect.right - layerRect.left + pad,
+      top: photoRect.top - layerRect.top - pad,
+      bottom: photoRect.bottom - layerRect.top + pad,
+    };
+  }
+
+  function overlapsZone(left, top, width, height, zone) {
+    if (!zone) return false;
+    const right = left + width;
+    const bottom = top + height;
+    return left < zone.right && right > zone.left && top < zone.bottom && bottom > zone.top;
+  }
 
   wanderCursors.forEach((cursor) => {
     // Its CSS left/top% is the anchor; x/y below is an OFFSET from that
@@ -108,12 +132,23 @@ function initHeroCursors() {
       const maxX = Math.max(minX, layer.clientWidth - (cursor.offsetWidth + 90) - baseLeft);
       const minY = -baseTop;
       const maxY = Math.max(minY, layer.clientHeight - (cursor.offsetHeight + 46) - baseTop);
-      // Step a limited distance from where it already is, instead of
-      // teleporting anywhere in the stage — keeps the drift calm/local.
-      const stepX = (Math.random() - 0.5) * layer.clientWidth * 0.14;
-      const stepY = (Math.random() - 0.5) * layer.clientHeight * 0.14;
-      const targetX = gsap.utils.clamp(minX, maxX, x + stepX);
-      const targetY = gsap.utils.clamp(minY, maxY, y + stepY);
+      const zone = getPhotoExclusionZone();
+
+      // Re-roll the target a few times if it lands on the photo's no-go
+      // zone, instead of accepting whatever random spot comes up first.
+      let targetX;
+      let targetY;
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const stepX = (Math.random() - 0.5) * layer.clientWidth * 0.14;
+        const stepY = (Math.random() - 0.5) * layer.clientHeight * 0.14;
+        targetX = gsap.utils.clamp(minX, maxX, x + stepX);
+        targetY = gsap.utils.clamp(minY, maxY, y + stepY);
+        const absLeft = baseLeft + targetX;
+        const absTop = baseTop + targetY;
+        if (!overlapsZone(absLeft, absTop, cursor.offsetWidth + 90, cursor.offsetHeight + 46, zone)) {
+          break;
+        }
+      }
 
       // A real hand doesn't glide at one constant speed the whole way — it's
       // quick-then-settle, scaled by how far it's actually travelling, with
