@@ -233,32 +233,17 @@ ul {
   gap: 2.25rem;
 }
 
-/* "✺ Available for work" Status Text */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 16px;
-  font-weight: 500;
-  color: #000000;
-  white-space: nowrap;
-}
 
-.star-icon {
-  color: #01c45e;
-  font-size: 16px;
-  line-height: 1;
-}
 
 /* Nav Links */
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 1.75rem;
+  gap: 1.25rem;
 }
 
 .nav-link {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: #000000;
   padding: 4px 0;
@@ -267,6 +252,35 @@ ul {
 
 .nav-link:hover {
   opacity: 0.5;
+}
+
+.nav-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.12),
+    0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.nav-cta-btn:hover {
+  opacity: 1;
+  background-color: #01c45e;
+  color: #000000;
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 6px 14px rgba(0, 0, 0, 0.1),
+    0 16px 28px rgba(0, 0, 0, 0.08);
 }
 
 /* Mobile Toggle */
@@ -311,7 +325,7 @@ ul {
 }
 
 .navbar.scrolled .nav-container {
-  padding: 0 1.5rem;
+  padding: 0 0.8rem 0 1.5rem;
 }
 
 /* ==========================================================================
@@ -346,6 +360,36 @@ ul {
 .hero-left {
   flex: 1;
   max-width: 800px;
+}
+
+/* "Available for work" — a terminal-prompt look, with a blinking block
+   cursor instead of a plain status dot. */
+.availability-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: #01c45e;
+}
+
+.availability-cursor {
+  display: inline-block;
+  margin-left: 0.2em;
+  animation: availability-blink 1s step-end infinite;
+}
+
+@keyframes availability-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .hero-statement {
@@ -719,6 +763,26 @@ ul {
   box-sizing: border-box !important;
 }
 
+/* Black wash behind the Testimonials/Services pin, faded via a CSS custom
+   property (opacity-only, compositor-friendly) instead of animating
+   `background-color` directly. clip-path above already gives this element
+   its own stacking context, so z-index: -1 here sits behind all of its
+   real content without needing extra wrapper markup. */
+.works-reveal-card {
+  --wash-opacity: 0;
+}
+
+.works-reveal-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: #000000;
+  opacity: var(--wash-opacity, 0);
+  pointer-events: none;
+  will-change: opacity;
+}
+
 /* ==========================================================================
    Selected Works Header Section
    ========================================================================== */
@@ -982,6 +1046,7 @@ ul {
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  border-radius: 28px;
 }
 
 .project-media-card img,
@@ -1034,7 +1099,7 @@ ul {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-radius: 0; /* Sharp corners */
+  border-radius: 9999px; /* Pill shape */
   opacity: 0;
   pointer-events: none;
   will-change: transform;
@@ -1679,6 +1744,96 @@ ul {
 }
 
 /* ==========================================================================
+   Booking (cal.com inline widget, now embedded inside the Contact section)
+   ========================================================================== */
+.booking-container {
+  position: relative;
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 0 clamp(2rem, 5vw, 6rem);
+  box-sizing: border-box;
+}
+
+.booking-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 2.5rem;
+}
+
+.booking-statement {
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: clamp(1.85rem, 2.7vw, 2.75rem);
+  font-weight: 500;
+  color: #000000;
+  letter-spacing: -0.03em;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.booking-frame {
+  width: 100%;
+  height: clamp(560px, 80vh, 780px);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.booking-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* CTA linking from Services down to the Contact section's booking widget */
+.services-cta {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 6rem;
+}
+
+.services-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  background-color: #01c45e;
+  color: #000000;
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 0.95rem 1.75rem 0.95rem 2.25rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(1, 196, 94, 0.25);
+}
+
+.services-cta-link svg {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.services-cta-link:hover {
+  background-color: #000000;
+  color: #ffffff;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.services-cta-link:hover svg {
+  transform: translate(2px, -2px);
+}
+
+/* ==========================================================================
    Skills & Tech Stack Section (marquee ticker of tools/technologies)
    ========================================================================== */
 .tech-stack-section {
@@ -1808,7 +1963,7 @@ ul {
 }
 
 .tech-wheel-slot--title .tech-card-name {
-  font-size: clamp(1rem, 1.5vw, 1.7rem);
+  font-size: clamp(0.85rem, 1.1vw, 1.3rem);
   max-width: none;
 }
 
@@ -2688,8 +2843,8 @@ html.lenis body {
     padding-top: 2rem;
   }
 
-  .status-badge {
-    font-size: 16px;
+  .availability-badge {
+    font-size: 13px;
   }
 
   .mobile-toggle {
@@ -2839,8 +2994,15 @@ html.lenis body {
   background-color: #ffffff;
 }
 
+.service-card:first-child {
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+}
+
 .service-card:last-child {
   border-right: 1px solid rgba(0, 0, 0, 0.14);
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
 }
 
 /* Subtle lime corner glow revealed on hover, matching azizkhaldi.com's card interaction */
@@ -2872,13 +3034,13 @@ html.lenis body {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background-color: #cbf63e;
+  background-color: #01c45e;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: rgba(17, 17, 17, 0.55);
-  box-shadow: 0 4px 14px rgba(203, 246, 62, 0.35);
+  box-shadow: 0 4px 14px rgba(1, 196, 94, 0.35);
   transition:
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     color 0.3s ease;

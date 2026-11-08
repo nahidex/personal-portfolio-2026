@@ -808,10 +808,10 @@ function initProjectsHorizontalScroll() {
 
 /* ==========================================================================
    Skills & Tech Stack — two hands of playing cards sharing one spot. The
-   section pins and the yellow Development card arrives first, slides left to
+   section pins and the red Design card arrives first, slides left to
    open a hand, and its tools are dealt in one per scroll step. The hand then
-   closes into a stack and turns over onto the red Design card, which slides
-   left in turn so its own tools can be dealt on top and closed again.
+   closes into a stack and turns over onto the yellow Development card, which
+   slides left in turn so its own tools can be dealt on top and closed again.
    Hovering lifts a card out of the hand (CSS).
    ========================================================================== */
 function initTechWheel() {
@@ -822,6 +822,9 @@ function initTechWheel() {
 
   gsap.registerPlugin(ScrollTrigger);
 
+  // Variable names are legacy from when "dev" dealt first — the `dev-title`/
+  // `dev` slots now hold the Design card/tools (still first), and
+  // `design-title`/`design` hold Development (still second).
   const devTitle = wheel.querySelector('[data-deck="dev-title"]');
   const devTools = Array.from(wheel.querySelectorAll('[data-deck="dev"]'));
   const designTitle = wheel.querySelector('[data-deck="design-title"]');
@@ -855,7 +858,7 @@ function initTechWheel() {
     return gsap.utils.clamp(0, 1, (progress * TOTAL_PX - from) / (to - from));
   };
 
-  // The design hand sits over the (by then face-down) development hand.
+  // The second (now Development) hand sits over the (by then face-down) first hand.
   devTitle.style.setProperty("--card-z", "0");
   devTools.forEach((slot, i) => slot.style.setProperty("--card-z", String(1 + i)));
   designTitle.style.setProperty("--card-z", "20");
@@ -1313,6 +1316,7 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
       client: slide?.querySelector(".project-client")?.textContent?.trim() ?? "",
       source: card.querySelector("img, video"),
       hover: 0,
+      aspect: 1, // natural width/height, refined once the texture decodes
     };
   });
 
@@ -1351,12 +1355,21 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
     varying vec2 vUv;
     uniform sampler2D uTex;
     uniform vec2 uHalf;
-    uniform float uCorner, uDim, uAlpha;
+    uniform float uCorner, uDim, uAlpha, uTexAspect, uCardAspect;
     void main() {
       vec2 d = abs((vUv - 0.5) * uHalf * 2.0) - (uHalf - uCorner);
       float sdf = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - uCorner;
       float a = (1.0 - smoothstep(-1.0, 1.0, sdf)) * uAlpha;
-      gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uDim * a, a);
+      // Crop like object-fit: cover instead of stretching the source into
+      // the card's own box, which is what warped every photo's proportions.
+      float rel = uTexAspect / uCardAspect;
+      vec2 uv = vUv;
+      if (rel > 1.0) {
+        uv.x = 0.5 + (uv.x - 0.5) / rel;
+      } else {
+        uv.y = 0.5 + (uv.y - 0.5) * rel;
+      }
+      gl_FragColor = vec4(texture2D(uTex, uv).rgb * uDim * a, a);
     }`;
 
   function compile(type, src) {
@@ -1389,6 +1402,8 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
     "uCorner",
     "uDim",
     "uAlpha",
+    "uTexAspect",
+    "uCardAspect",
   ].forEach((name) => {
     u[name] = gl.getUniformLocation(program, name);
   });
@@ -1447,6 +1462,9 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
       // A video only needs its first frame — a still keeps the orbit cheap.
       const ready = src.tagName === "VIDEO" ? src.readyState >= 2 : src.naturalWidth > 0;
       if (!ready) continue;
+      const w = src.tagName === "VIDEO" ? src.videoWidth : src.naturalWidth;
+      const h = src.tagName === "VIDEO" ? src.videoHeight : src.naturalHeight;
+      if (w > 0 && h > 0) pending[i].aspect = w / h;
       gl.bindTexture(gl.TEXTURE_2D, pending[i].texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
       pending.splice(i, 1);
@@ -1659,6 +1677,8 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
       gl.uniform1f(u.uDim, (0.58 + 0.42 * Math.max(facing, 0)) * (1 - 0.6 * (focus - item.hover)));
       gl.uniform1f(u.uTangent, tangentAt(angle));
       gl.uniform2f(u.uHalf, halfH, halfH);
+      gl.uniform1f(u.uTexAspect, item.aspect || 1);
+      gl.uniform1f(u.uCardAspect, 1); // uCardW === uCardH, so the card itself is square
       gl.drawArrays(gl.TRIANGLES, 0, SEGMENTS * 6);
     });
   }
@@ -1876,16 +1896,20 @@ function initTestimonialsScroll() {
       invalidateOnRefresh: true,
     },
   });
+  // A black `::before` overlay faded via a CSS custom property instead of
+  // tweening `backgroundColor` directly — opacity is compositor-only, so
+  // this scrubs without repainting the container every tick (backgroundColor
+  // was, which dropped frames through this whole section).
   colorTl.fromTo(
     bgTarget,
-    { backgroundColor: "#ffffff" },
-    { backgroundColor: "#000000", ease: "none", duration: darkenDur },
+    { "--wash-opacity": 0 },
+    { "--wash-opacity": 1, ease: "none", duration: darkenDur },
     0
   );
   // (implicit hold at black through the pin — no tween needed, it just stays)
   colorTl.to(
     bgTarget,
-    { backgroundColor: "#ffffff", ease: "none", duration: fadeOutDur },
+    { "--wash-opacity": 0, ease: "none", duration: fadeOutDur },
     pinReleasePoint
   );
 
