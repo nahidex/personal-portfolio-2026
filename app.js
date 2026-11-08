@@ -54,8 +54,7 @@ function initPreloader() {
   const BEND = 240; // control point for the trailing arc, in viewBox units
 
   const animated =
-    typeof gsap !== "undefined" &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    typeof gsap !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   document.body.classList.add("is-loading");
   if (lenis) lenis.stop();
@@ -134,8 +133,7 @@ function initPreloader() {
   }
 
   const startedAt = performance.now();
-  const onReady = () =>
-    setTimeout(finish, Math.max(0, MIN_MS - (performance.now() - startedAt)));
+  const onReady = () => setTimeout(finish, Math.max(0, MIN_MS - (performance.now() - startedAt)));
 
   if (document.readyState === "complete") onReady();
   else window.addEventListener("load", onReady, { once: true });
@@ -480,7 +478,11 @@ function jumpToSection(target) {
     // Reveal, with the arc swelling and flattening the same way.
     .to(label, { opacity: 0, y: -30, duration: 0.4, ease: "power2.in" }, "uncover")
     .to(panel, { yPercent: -100, y: -240, duration: 0.95, ease: "power3.inOut" }, "uncover+=0.15")
-    .to(bend, { value: BEND, duration: 0.47, ease: "power2.out", onUpdate: drawBends }, "uncover+=0.15")
+    .to(
+      bend,
+      { value: BEND, duration: 0.47, ease: "power2.out", onUpdate: drawBends },
+      "uncover+=0.15"
+    )
     .to(bend, { value: 0, duration: 0.48, ease: "power2.in", onUpdate: drawBends }, "uncover+=0.62")
     // Uncovered: only now cover the runway, so the section's reveal plays in
     // full view rather than behind the curtain.
@@ -785,7 +787,19 @@ function initProjectsHorizontalScroll() {
       },
     });
 
+    // The pin's length is the track's width, so a track that changes width
+    // without the window resizing (card CSS edits, a slide added) would leave
+    // dead scroll at the end until something else forced a refresh.
+    let lastWidth = track.scrollWidth;
+    const trackObserver = new ResizeObserver(() => {
+      if (track.scrollWidth === lastWidth) return;
+      lastWidth = track.scrollWidth;
+      ScrollTrigger.refresh();
+    });
+    trackObserver.observe(track);
+
     return () => {
+      trackObserver.disconnect();
       horizontalTween.kill();
       gsap.set(track, { clearProps: "all" });
     };
@@ -1045,6 +1059,7 @@ function initProjectLightbox() {
   const clientEl = document.getElementById("lightboxClient");
   const headingEl = document.getElementById("lightboxHeading");
   const yearEl = document.getElementById("lightboxYear");
+  const leadClientEl = document.getElementById("lightboxLeadClient");
   const cards = document.querySelectorAll(".project-media-card");
 
   if (!lightbox || !panel || !scrollEl || !hero || !mediaSlot || !titleBar || cards.length === 0)
@@ -1059,6 +1074,8 @@ function initProjectLightbox() {
   let titleObserver = null;
   let titleRevealed = false;
   let userScrolled = false;
+  let activeCard = null;
+  let swapTween = null;
   // Distance (in scroll px) over which the hero fully retracts toward the top —
   // matches the hero's own height so the title bar lands flush at the top
   // (scrollTop 0) the instant the retract finishes, not partway down.
@@ -1120,297 +1137,17 @@ function initProjectLightbox() {
     mediaSlot.appendChild(clone);
   }
 
-  function applyProjectContent(card) {
+  function applyProject(card) {
+    activeCard = card;
     const slide = card.closest(".project-slide");
-    clientEl.textContent = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    const client = slide ? (slide.querySelector(".project-client")?.textContent ?? "") : "";
+    clientEl.textContent = client;
     headingEl.textContent = slide
       ? (slide.querySelector(".project-heading")?.textContent ?? "")
       : "";
     yearEl.textContent = slide ? (slide.querySelector(".project-year")?.textContent ?? "") : "";
+    if (leadClientEl) leadClientEl.textContent = client || "the client";
     fillMedia(card);
-  }
-
-  // --- More Cases orbit ---------------------------------------------------
-  // Ported directly from emblematica.agency's own shipped JS — their site
-  // layers a WebGL globe on top as a progressive enhancement, but this
-  // exact per-card translate3d/rotateY/rotateZ/scale formula (read straight
-  // out of their inline script, `build()`/`layout()`/`render()`/drag/auto-
-  // rotate) is what they themselves fall back to without WebGL, so it's the
-  // most faithful replication achievable without writing a custom WebGL
-  // renderer. One addition: their WebGL path repeats a short project list
-  // around the ring so it's always densely filled (`minRing` config) — kept
-  // here too, since we only have a handful of other projects.
-  const moreCasesWheel = document.getElementById("moreCasesWheel");
-  const moreCasesName = document.getElementById("moreCasesName");
-  const moreCasesHint = document.getElementById("moreCasesHint");
-  let ringItems = []; // { el, card } one per repeated ring slot
-  let ringN = 0;
-  let ringStep = 0;
-  let ringRadius = 0;
-  let ringRotation = 0;
-  let ringVelocity = 0;
-  let hoveredRingItem = null;
-  let hoverScaleT = 0; // eased 0..1, smoothly drives the subtle hover grow
-  let ringDragging = false;
-  let ringMoved = 0;
-  let ringHover = false;
-  let ringLastX = 0;
-  let activeRingCard = null;
-  const RING_MIN_SLOTS = 18;
-  const AUTO_DEG_PER_MS = 0.005;
-
-  // Dummy placeholder thumbnails (same gradients as the case-study content
-  // blocks above) stand in for any video-based project — applied directly
-  // as each strip's own background so the slicing math still works on them.
-  const PLACEHOLDER_GRADIENTS = [
-    "linear-gradient(135deg, #2c2c2c 0%, #0a0a0a 100%)",
-    "linear-gradient(135deg, #1d1d1d 0%, #3a3a3a 100%)",
-    "linear-gradient(135deg, #262626 0%, #050505 100%)",
-  ];
-
-  function layoutRing() {
-    const cw = ringItems[0] ? ringItems[0].el.offsetWidth : 300;
-    ringRadius = Math.max((cw * 0.5) / Math.tan(Math.PI / ringN) * 1.06, cw * 1.25);
-  }
-
-  function setActiveRingCard(card, name) {
-    if (activeRingCard === card) return;
-    activeRingCard = card;
-    moreCasesName.textContent = name;
-    gsap.fromTo(
-      moreCasesName,
-      { opacity: 0, scale: 0.8, y: 6 },
-      { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "back.out(2)" }
-    );
-  }
-
-  function renderRing() {
-    const rad = Math.PI / 180;
-    let closest = null;
-    let closestDist = Infinity;
-    ringItems.forEach((item, i) => {
-      let a = ((i * ringStep + ringRotation) % 360 + 540) % 360 - 180;
-      const r = a * rad;
-      const c = Math.cos(r);
-      const s = Math.sin(r);
-      const el = item.el;
-      if (c < -0.15) {
-        el.style.opacity = "0";
-        el.style.pointerEvents = "none";
-        return;
-      }
-      const x = ringRadius * s;
-      const z = ringRadius * c - ringRadius;
-      // Reference's own formula (verbatim): a small one-directional lift as
-      // a card turns away from center, not a symmetric up/down arc — that's
-      // what keeps every visible card sitting at roughly the same height
-      // instead of a staggered staircase.
-      const y = (1 - c) * ringRadius * 0.12;
-      const tilt = -s * 4;
-      let sc = 0.82 + 0.18 * Math.max(c, 0);
-      // A subtle grow on hover/focus — eased in app.js's own tick below
-      // rather than a CSS transition, since transform is rewritten every
-      // frame for the orbit motion itself and a CSS transition would just
-      // fight that constant update.
-      if (item === hoveredRingItem) sc *= 1 + 0.08 * hoverScaleT;
-      el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(2)}deg) rotateZ(${tilt.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
-      el.style.opacity = String(gsap.utils.clamp(0, 1, (c + 0.15) * 3.5));
-      el.style.pointerEvents = c > 0.25 ? "auto" : "none";
-      el.style.zIndex = String(Math.round((c + 1) * 100));
-      const dist = Math.abs(a);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = item;
-      }
-    });
-    if (closest) setActiveRingCard(closest.card, closest.name);
-  }
-
-  let ringLastTickTime = 0;
-  gsap.ticker.add(() => {
-    if (!isOpen || !ringN) return;
-    const now = performance.now();
-    const dt = Math.min(40, ringLastTickTime ? now - ringLastTickTime : 16);
-    ringLastTickTime = now;
-    hoverScaleT += ((hoveredRingItem ? 1 : 0) - hoverScaleT) * Math.min(1, dt * 0.012);
-    if (!ringDragging) {
-      const target = ringHover ? 0 : AUTO_DEG_PER_MS;
-      ringVelocity += (target - ringVelocity) * Math.min(1, dt * 0.004);
-      ringRotation += ringVelocity * dt;
-    }
-    renderRing();
-  });
-
-  const STRIP_COUNT = 9;
-  const STRIP_ANGLE_STEP = 6; // degrees of local bend between neighbouring strips — constant per card, independent of its position on the big ring
-
-  // Slices a card's photo into thin vertical strips, each on its own small
-  // rotateY/translateZ spoke — bends the flat photo into a barrel/cylinder
-  // curve, matching the reference's warped-photo look (their version is a
-  // WebGL sphere-mapped quad; subdividing the image is the CSS-only way to
-  // fake the same curvature on a plain flat element).
-  function buildCardStrips(el, bgImage) {
-    const strips = document.createElement("div");
-    strips.className = "more-cases-item-strips";
-    for (let i = 0; i < STRIP_COUNT; i++) {
-      const strip = document.createElement("div");
-      strip.className = "more-cases-item-strip";
-      if (bgImage) strip.style.backgroundImage = bgImage;
-      strips.appendChild(strip);
-    }
-    el.appendChild(strips);
-    return strips;
-  }
-
-  function layoutCardStrips(strips, cw, ch) {
-    const stripW = cw / STRIP_COUNT;
-    const stripRadius = (stripW / 2) / Math.tan((STRIP_ANGLE_STEP / 2) * (Math.PI / 180));
-    const mid = (STRIP_COUNT - 1) / 2;
-    const rad = Math.PI / 180;
-    Array.from(strips.children).forEach((strip, i) => {
-      // All strips stack on the SAME centered anchor; the transform alone
-      // both fans them out sideways (x) and folds them around the arc (z),
-      // same formula as the big ring, just at card-local scale. Z is
-      // normalized (`- stripRadius`) so the CENTER strip sits flush at z:0
-      // instead of every strip bulging forward by the full radius, which
-      // was blowing the whole card up far past its real size.
-      strip.style.width = stripW + 1 + "px";
-      strip.style.left = "50%";
-      strip.style.marginLeft = -(stripW / 2) + "px";
-      strip.style.backgroundSize = `${cw}px ${ch}px`;
-      strip.style.backgroundPosition = `${-(i * stripW - (cw - stripW * STRIP_COUNT) / 2)}px 0px`;
-      const angle = (i - mid) * STRIP_ANGLE_STEP;
-      const r = angle * rad;
-      const x = stripRadius * Math.sin(r);
-      const z = stripRadius * Math.cos(r) - stripRadius;
-      strip.style.transform = `translate3d(${x.toFixed(2)}px, 0px, ${z.toFixed(2)}px) rotateY(${angle}deg)`;
-    });
-  }
-
-  function buildMoreCases(excludeCard) {
-    if (!moreCasesWheel) return;
-    moreCasesWheel.innerHTML = "";
-    ringRotation = 0;
-    ringVelocity = 0;
-    ringLastTickTime = 0;
-
-    const others = Array.from(cards).filter((c) => c !== excludeCard);
-    const nb = others.length;
-    if (!nb) {
-      ringN = 0;
-      return;
-    }
-    // Repeat the short project list around the ring so it's always densely
-    // filled, same as the reference's own `minRing` config.
-    const reps = Math.max(1, Math.ceil(RING_MIN_SLOTS / nb));
-    const ring = [];
-    for (let r = 0; r < reps; r++) for (let b = 0; b < nb; b++) ring.push(b);
-    ringN = ring.length;
-    ringStep = 360 / ringN;
-
-    ringItems = ring.map((projectIndex, i) => {
-      const otherCard = others[projectIndex];
-      const slide = otherCard.closest(".project-slide");
-      const name = slide ? (slide.querySelector(".project-heading")?.textContent ?? "") : "";
-      const el = document.createElement("div");
-      el.className = "more-cases-item";
-      const source = otherCard.querySelector("img");
-      const bgImage =
-        source && source.src
-          ? `url("${source.src}")`
-          : PLACEHOLDER_GRADIENTS[projectIndex % PLACEHOLDER_GRADIENTS.length];
-      const strips = buildCardStrips(el, bgImage);
-      const item = { el, strips, card: otherCard, name };
-      el.addEventListener("click", () => {
-        if (ringMoved > 6) return; // a drag just ended here, not a tap
-        switchToCard(otherCard);
-      });
-      el.addEventListener("pointerenter", () => {
-        hoveredRingItem = item;
-      });
-      el.addEventListener("pointerleave", () => {
-        if (hoveredRingItem === item) hoveredRingItem = null;
-      });
-      moreCasesWheel.appendChild(el);
-      return item;
-    });
-
-    const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
-    // Matches the reference's actual rendered (WebGL) card proportions —
-    // measured directly off their live page, nearly square — not the 0.75
-    // landscape ratio in their CSS-fallback markup, which only applies when
-    // WebGL isn't running and is never what's actually visually shown.
-    const ch = Math.round(cw * 0.9);
-    ringItems.forEach((item) => {
-      item.el.style.setProperty("--cw", cw + "px");
-      item.el.style.setProperty("--ih", ch + "px");
-      layoutCardStrips(item.strips, cw, ch);
-    });
-
-    layoutRing();
-    renderRing();
-  }
-
-  if (moreCasesWheel) {
-    moreCasesWheel.addEventListener("pointerdown", (e) => {
-      ringDragging = true;
-      ringMoved = 0;
-      ringLastX = e.clientX;
-      ringVelocity = 0;
-      moreCasesWheel.classList.add("is-dragging");
-      if (moreCasesHint) moreCasesHint.classList.add("is-hidden");
-      // Deliberately NOT using setPointerCapture here — capturing on the
-      // wheel also redirects each card's own `click` event to the wheel
-      // itself, so a plain tap on a card would never reach its listener.
-      // Tracking move/up on `window` for the drag's duration gets the same
-      // "keep tracking even if the pointer leaves the element" behavior
-      // without breaking child clicks.
-      window.addEventListener("pointermove", onRingPointerMove);
-      window.addEventListener("pointerup", endDrag);
-    });
-    function onRingPointerMove(e) {
-      if (!ringDragging) return;
-      const dx = e.clientX - ringLastX;
-      ringLastX = e.clientX;
-      ringMoved += Math.abs(dx);
-      const d = dx * 0.22;
-      ringRotation += d;
-      ringVelocity = d / 16;
-    }
-    function endDrag() {
-      if (!ringDragging) return;
-      ringDragging = false;
-      moreCasesWheel.classList.remove("is-dragging");
-      window.removeEventListener("pointermove", onRingPointerMove);
-      window.removeEventListener("pointerup", endDrag);
-    }
-    moreCasesWheel.addEventListener("mouseenter", () => {
-      ringHover = true;
-    });
-    moreCasesWheel.addEventListener("mouseleave", () => {
-      ringHover = false;
-    });
-    window.addEventListener("resize", () => {
-      if (!ringN) return;
-      const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
-      ringItems.forEach((item) => {
-        item.el.style.setProperty("--cw", cw + "px");
-        item.el.style.setProperty("--ih", Math.round(cw * 0.9) + "px");
-      });
-      layoutRing();
-      renderRing();
-    });
-  }
-
-  function switchToCard(card) {
-    applyProjectContent(card);
-    scrollEl.scrollTop = 0;
-    wheelTarget = 0;
-    userScrolled = true; // a project switch should never auto-retract the hero
-    gsap.set(hero, { "--hero-clip": "0%" });
-    gsap.set(mediaSlot, { scale: 1 });
-    armTitleReveal();
-    buildMoreCases(card);
   }
 
   // Clips the hero's bottom edge away as scrollTop grows, so it looks like the
@@ -1420,12 +1157,51 @@ function initProjectLightbox() {
     gsap.set(hero, { "--hero-clip": `${progress * 100}%` });
   }
 
+  // Plays the hero "flash then retract" move that normally follows the open
+  // animation, so a swapped-in project lands on its content the same way.
+  function retractHero(delay) {
+    retractTween = gsap.to(scrollEl, {
+      scrollTop: shrinkRange(),
+      duration: 0.9,
+      delay,
+      ease: "power3.inOut",
+      onUpdate: onScroll,
+      onComplete: () => {
+        wheelTarget = shrinkRange();
+      },
+    });
+  }
+
+  // Picking a card out of the "More cases" orbit replaces the case study in
+  // place rather than closing and reopening the whole panel.
+  function swapProject(card) {
+    if (!isOpen || card === activeCard) return;
+    retractTween && retractTween.kill();
+    wheelTween && wheelTween.kill();
+    swapTween && swapTween.kill();
+    titleObserver && titleObserver.disconnect();
+
+    swapTween = gsap.timeline();
+    swapTween
+      .to(scrollEl, { opacity: 0, duration: 0.3, ease: "power2.in" })
+      .add(() => {
+        applyProject(card);
+        orbit.reset();
+        scrollEl.scrollTop = 0;
+        wheelTarget = 0;
+        gsap.set(hero, { "--hero-clip": "0%" });
+        armTitleReveal();
+      })
+      .to(scrollEl, { opacity: 1, duration: 0.4, ease: "power2.out" })
+      .add(() => retractHero(0.25));
+  }
+
   function openLightbox(card) {
     if (isOpen) return;
     isOpen = true;
 
-    applyProjectContent(card);
-    buildMoreCases(card);
+    applyProject(card);
+    gsap.set(scrollEl, { opacity: 1 });
     scrollEl.scrollTop = 0;
     wheelTarget = 0;
     userScrolled = false;
@@ -1433,6 +1209,7 @@ function initProjectLightbox() {
     gsap.set(panel, { "--lightbox-inset": "49.7%" });
     gsap.set(hero, { "--hero-clip": "0%" });
     gsap.set(mediaSlot, { scale: 1.18 });
+    orbit && orbit.reset();
     gsap.set(closeBtn, { opacity: 0 });
     armTitleReveal();
 
@@ -1447,19 +1224,11 @@ function initProjectLightbox() {
     activeTween = gsap.timeline({
       onComplete: () => {
         scrollEl.addEventListener("scroll", onScroll);
+        orbit && orbit.start();
         if (userScrolled) return; // user already took control — don't yank it back
         // Flash the full image briefly, then auto-retract it toward the top
         // bar via clip-path, scrolling the case-study content into view.
-        retractTween = gsap.to(scrollEl, {
-          scrollTop: shrinkRange(),
-          duration: 0.9,
-          delay: 0.35,
-          ease: "power3.inOut",
-          onUpdate: onScroll,
-          onComplete: () => {
-            wheelTarget = shrinkRange();
-          },
-        });
+        retractHero(0.35);
       },
     });
     activeTween
@@ -1476,7 +1245,9 @@ function initProjectLightbox() {
     scrollEl.removeEventListener("wheel", onWheel);
     retractTween && retractTween.kill();
     wheelTween && wheelTween.kill();
+    swapTween && swapTween.kill();
     titleObserver && titleObserver.disconnect();
+    orbit && orbit.stop();
 
     activeTween && activeTween.kill();
     activeTween = gsap.timeline({
@@ -1484,6 +1255,7 @@ function initProjectLightbox() {
         lightbox.classList.remove("is-active");
         lightbox.setAttribute("aria-hidden", "true");
         mediaSlot.innerHTML = "";
+        activeCard = null;
         if (lenis) lenis.start();
       },
     });
@@ -1505,6 +1277,544 @@ function initProjectLightbox() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeLightbox();
   });
+
+  const orbit = initMoreCasesOrbit({
+    cards,
+    root: scrollEl,
+    onSelect: swapProject,
+    getActiveCard: () => activeCard,
+    // The sticky title belongs to the case study above, so it steps aside
+    // once the visitor has scrolled down into the "more cases" cylinder.
+    onVisibility: (orbitVisible) => {
+      if (!titleRevealed) return;
+      gsap.to(titleBar, { opacity: orbitVisible ? 0 : 1, duration: 0.35, ease: "power2.out" });
+    },
+  });
+}
+
+/* ==========================================================================
+   More Cases — the other projects wrapped around a slowly turning cylinder,
+   drawn on a WebGL canvas so each card can be bent along the curve instead of
+   just rotated flat. Drag to spin, release for momentum, click a card to swap
+   the case study behind it. Falls back to a plain list if WebGL is missing.
+   ========================================================================== */
+function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility }) {
+  const section = document.getElementById("moreCases");
+  const canvas = document.getElementById("moreCasesCanvas");
+  const listEl = document.getElementById("moreCasesList");
+  const captionEl = document.getElementById("moreCasesCaption");
+  if (!section || !canvas || !listEl || !captionEl || cards.length === 0) return null;
+
+  const items = Array.from(cards).map((card) => {
+    const slide = card.closest(".project-slide");
+    return {
+      card,
+      title: slide?.querySelector(".project-heading")?.textContent?.trim() ?? "",
+      client: slide?.querySelector(".project-client")?.textContent?.trim() ?? "",
+      source: card.querySelector("img, video"),
+      hover: 0,
+    };
+  });
+
+  // Accessible fallback: a real list of links, also what shows without WebGL.
+  listEl.innerHTML = "";
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#cases";
+    a.textContent = `${item.client} — ${item.title}`;
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      onSelect(item.card);
+    });
+    li.appendChild(a);
+    listEl.appendChild(li);
+  });
+
+  const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: true });
+  if (!gl) return null;
+
+  const VERT = `
+    attribute vec2 aPos;
+    uniform mat4 uProj;
+    uniform float uRX, uRZ, uCardW, uCardH, uAngle, uCamZ, uTangent, uScale;
+    varying vec2 vUv;
+    void main() {
+      float a = uAngle + aPos.x * uCardW * uScale / uTangent;
+      vec3 p = vec3(uRX * sin(a), aPos.y * uCardH * uScale, uRZ * cos(a) - uCamZ);
+      vUv = aPos + 0.5;
+      gl_Position = uProj * vec4(p, 1.0);
+    }`;
+
+  const FRAG = `
+    precision mediump float;
+    varying vec2 vUv;
+    uniform sampler2D uTex;
+    uniform vec2 uHalf;
+    uniform float uCorner, uDim, uAlpha;
+    void main() {
+      vec2 d = abs((vUv - 0.5) * uHalf * 2.0) - (uHalf - uCorner);
+      float sdf = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - uCorner;
+      float a = (1.0 - smoothstep(-1.0, 1.0, sdf)) * uAlpha;
+      gl_FragColor = vec4(texture2D(uTex, vUv).rgb * uDim * a, a);
+    }`;
+
+  function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return sh;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+  gl.useProgram(program);
+
+  const u = {};
+  [
+    "uProj",
+    "uRX",
+    "uRZ",
+    "uCardW",
+    "uCardH",
+    "uAngle",
+    "uCamZ",
+    "uTangent",
+    "uScale",
+    "uTex",
+    "uHalf",
+    "uCorner",
+    "uDim",
+    "uAlpha",
+  ].forEach((name) => {
+    u[name] = gl.getUniformLocation(program, name);
+  });
+
+  // A quad split into columns along x — the vertex shader bends those columns
+  // along the ellipse, which is what gives each card its curve.
+  const SEGMENTS = 36;
+  const verts = [];
+  for (let i = 0; i < SEGMENTS; i += 1) {
+    const x0 = -0.5 + i / SEGMENTS;
+    const x1 = -0.5 + (i + 1) / SEGMENTS;
+    verts.push(x0, -0.5, x1, -0.5, x1, 0.5, x0, -0.5, x1, 0.5, x0, 0.5);
+  }
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(program, "aPos");
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+
+  // Textures start as a flat placeholder and get filled in from `pending` as
+  // each source becomes decodable. Polling beats listening for `load`, which
+  // the lazily-loaded showcase images never reliably fire.
+  const pending = [];
+
+  items.forEach((item) => {
+    item.texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, item.texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array([26, 26, 30, 255])
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    if (item.source) pending.push(item);
+  });
+
+  function flushTextures() {
+    for (let i = pending.length - 1; i >= 0; i -= 1) {
+      const src = pending[i].source;
+      // A video only needs its first frame — a still keeps the orbit cheap.
+      const ready = src.tagName === "VIDEO" ? src.readyState >= 2 : src.naturalWidth > 0;
+      if (!ready) continue;
+      gl.bindTexture(gl.TEXTURE_2D, pending[i].texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      pending.splice(i, 1);
+    }
+  }
+
+  // Fish-eye strength, 0-10. A deeper ring on its own backfires: it lengthens
+  // the perimeter, so more cards fit and each neighbour turns less. The pull
+  // comes from the lens, so the dial opens the FOV and the depth together.
+  const FISHEYE = 9;
+  const FOV = ((46 + FISHEYE * 3.5) * Math.PI) / 180;
+  const RING_DEPTH = 1.25 + FISHEYE * 0.08;
+  const FOCAL = 1 / Math.tan(FOV / 2);
+  const FILL = 0.9; // card arc as a share of its slot — the rest is the gap
+  const CARD_VIEW_H = 0.68; // target front-card height as a share of the canvas
+  const HOVER_SCALE = 1.06; // how much a hovered card grows
+  const MAX_VIEW_H = 0.96 / HOVER_SCALE; // keeps even a hovered card in frame
+  const VIEW_SPAN = 0.99; // how much of the ellipse's width the viewport shows
+  const AUTO_SPEED = 0.022; // turns per second; positive drifts cards rightward
+  const DRAG_CARDS = 4.5; // cards advanced per full canvas-width of drag
+
+  // Sampled unit ellipse (rx = 1) so cards can be spaced by arc length instead
+  // of by angle — equal angles would bunch them up at the flat ends.
+  const SAMPLES = 720;
+  const arcAt = new Float64Array(SAMPLES + 1);
+  let unitPerimeter = 1;
+
+  function sampleEllipse(flatness) {
+    for (let i = 1; i <= SAMPLES; i += 1) {
+      const a0 = ((i - 1) / SAMPLES) * Math.PI * 2;
+      const a1 = (i / SAMPLES) * Math.PI * 2;
+      arcAt[i] =
+        arcAt[i - 1] +
+        Math.hypot(Math.sin(a1) - Math.sin(a0), flatness * (Math.cos(a1) - Math.cos(a0)));
+    }
+    unitPerimeter = arcAt[SAMPLES];
+  }
+
+  // Angle at a given fraction of the way round the ellipse's perimeter.
+  function angleAtTurn(value) {
+    const target = (((value % 1) + 1) % 1) * unitPerimeter;
+    let lo = 0;
+    let hi = SAMPLES;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (arcAt[mid] <= target) lo = mid;
+      else hi = mid;
+    }
+    const span = arcAt[hi] - arcAt[lo] || 1;
+    return ((lo + (target - arcAt[lo]) / span) / SAMPLES) * Math.PI * 2;
+  }
+
+  // `pool` is every case the orbit may show (the open one is dropped); `deck`
+  // is the ring of slots, which repeats the pool when a wide canvas has room
+  // for more cards than there are cases.
+  let pool = items;
+  let deck = items;
+  let cardSize = 1; // square card's edge length in world units
+  let rx = 1;
+  let rz = 0.3;
+  let camZ = 3;
+
+  // Geometry is driven by the canvas *height* so a card always occupies the
+  // same slice of it — a wide canvas then simply fits more cards rather than
+  // dragging the camera in until the front card bursts out of frame.
+  function layout(aspect) {
+    // The front card sits one unit from the camera and everything else is
+    // expressed relative to that, so only the ratios below shape the look.
+    rz = RING_DEPTH - 1;
+    camZ = RING_DEPTH;
+    rx = (camZ * aspect) / FOCAL / VIEW_SPAN;
+    sampleEllipse(rz / rx);
+
+    // `ring` is how many slots fit round the ellipse per unit of card height.
+    // Rounding the slot count to whole passes through the pool keeps a repeated
+    // case exactly half a ring from its twin; the card is then sized to the
+    // slot it got, which pins the gap at (1 - FILL) of a slot at every size.
+    const ring = (RING_DEPTH * aspect * unitPerimeter * FILL) / (2 * VIEW_SPAN);
+    const slots = pool.length * Math.max(1, Math.round(ring / CARD_VIEW_H / pool.length));
+    cardSize = (2 * Math.min(ring / slots, MAX_VIEW_H)) / FOCAL;
+    deck = Array.from({ length: slots }, (_, i) => pool[i % pool.length]);
+  }
+
+  let turn = 0;
+  let velocity = 0;
+  let dragging = false;
+  let lastX = 0;
+  let movedBy = 0;
+  let hovered = null;
+  let drift = 1;
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+  let rafId = 0;
+  let running = false;
+  let visible = false;
+  let enabled = false;
+  let captionItem = null;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = canvas.clientWidth;
+    height = canvas.clientHeight;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    const aspect = width / height || 1;
+    const near = 0.1;
+    const far = 100;
+    // prettier-ignore
+    const proj = new Float32Array([
+      FOCAL / aspect, 0, 0, 0,
+      0, FOCAL, 0, 0,
+      0, 0, (far + near) / (near - far), -1,
+      0, 0, (2 * far * near) / (near - far), 0,
+    ]);
+    layout(aspect);
+
+    gl.useProgram(program);
+    gl.uniformMatrix4fv(u.uProj, false, proj);
+    gl.uniform1f(u.uRX, rx);
+    gl.uniform1f(u.uRZ, rz);
+    gl.uniform1f(u.uCardW, cardSize);
+    gl.uniform1f(u.uCardH, cardSize);
+    gl.uniform1f(u.uCamZ, camZ);
+    gl.uniform1f(u.uCorner, 9 * dpr);
+  }
+
+  function slotAngle(index) {
+    return angleAtTurn(turn + index / deck.length);
+  }
+
+  function frontIndex() {
+    const raw = Math.round(-turn * deck.length) % deck.length;
+    return (raw + deck.length) % deck.length;
+  }
+
+  function syncCaption() {
+    // Hovering takes the caption over from whichever card happens to be in
+    // front, so pointing at a card always names that card.
+    const next = hovered ?? deck[frontIndex()];
+    if (next === captionItem) return;
+    captionItem = next;
+    captionEl.classList.add("is-swapping");
+    clearTimeout(syncCaption.timer);
+    syncCaption.timer = setTimeout(() => {
+      captionEl.textContent = next.title;
+      captionEl.classList.remove("is-swapping");
+    }, 160);
+  }
+
+  // Screen-space x of a card's centre, used to work out which one was clicked.
+  function screenX(angle) {
+    const aspect = width / height || 1;
+    const z = rz * Math.cos(angle) - camZ;
+    const ndc = ((FOCAL / aspect) * (rx * Math.sin(angle))) / -z;
+    return (ndc * 0.5 + 0.5) * width;
+  }
+
+  function tangentAt(angle) {
+    return Math.hypot(rx * Math.cos(angle), rz * Math.sin(angle));
+  }
+
+  // Half the card's on-screen height in CSS px, which also fixes its width via
+  // the fixed 4:3 ratio — used for both hit testing and the corner radius.
+  function halfHeightAt(angle) {
+    return (((height / 2) * (cardSize / 2)) / (camZ - rz * Math.cos(angle))) * FOCAL;
+  }
+
+  function cardAtPointer(px, py) {
+    let best = null;
+    deck.forEach((item, index) => {
+      const angle = slotAngle(index);
+      const facing = Math.cos(angle);
+      if (facing < 0.05) return;
+      const half = cardSize / 2 / tangentAt(angle);
+      const left = screenX(angle - half);
+      const right = screenX(angle + half);
+      if (px < Math.min(left, right) || px > Math.max(left, right)) return;
+      if (Math.abs(py - height / 2) > halfHeightAt(angle)) return;
+      if (!best || facing > best.facing) best = { item, facing };
+    });
+    return best && best.item;
+  }
+
+  function draw() {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    // Hovering lifts a card above its neighbours, so it has to paint last.
+    const order = deck
+      .map((item, index) => ({ item, angle: slotAngle(index) }))
+      .sort(
+        (a, b) => Math.cos(a.angle) + a.item.hover * 2 - (Math.cos(b.angle) + b.item.hover * 2)
+      );
+
+    const focus = deck.reduce((max, item) => Math.max(max, item.hover), 0);
+
+    order.forEach(({ item, angle }) => {
+      const facing = Math.cos(angle);
+      const alpha = Math.max(0, Math.min(1, (facing + 0.02) / 0.22));
+      if (alpha <= 0.001) return;
+      const scale = 1 + (HOVER_SCALE - 1) * item.hover;
+      // Corner radius has to track how big this card actually lands on screen.
+      const halfH = halfHeightAt(angle) * dpr * scale;
+      gl.bindTexture(gl.TEXTURE_2D, item.texture);
+      gl.uniform1i(u.uTex, 0);
+      gl.uniform1f(u.uAngle, angle);
+      gl.uniform1f(u.uAlpha, alpha);
+      gl.uniform1f(u.uScale, scale);
+      gl.uniform1f(u.uDim, (0.58 + 0.42 * Math.max(facing, 0)) * (1 - 0.6 * (focus - item.hover)));
+      gl.uniform1f(u.uTangent, tangentAt(angle));
+      gl.uniform2f(u.uHalf, halfH, halfH);
+      gl.drawArrays(gl.TRIANGLES, 0, SEGMENTS * 6);
+    });
+  }
+
+  let lastTime = 0;
+  function tick(now) {
+    rafId = requestAnimationFrame(tick);
+    const dt = lastTime ? Math.min((now - lastTime) / 1000, 0.05) : 0.016;
+    lastTime = now;
+
+    if (pending.length) flushTextures();
+
+    const ease = 1 - Math.pow(0.0005, dt);
+    deck.forEach((item) => {
+      item.hover += ((item === hovered ? 1 : 0) - item.hover) * ease;
+    });
+    // Hovering parks the carousel so the card can be read, but eases into the
+    // stop instead of snapping.
+    drift += ((hovered ? 0 : 1) - drift) * ease;
+
+    if (!dragging) {
+      turn += (velocity + AUTO_SPEED * drift) * dt;
+      velocity *= Math.pow(0.02, dt); // momentum bleeds off over ~1s
+      if (Math.abs(velocity) < 0.0002) velocity = 0;
+    }
+
+    syncCaption();
+    draw();
+  }
+
+  function start() {
+    if (running || !visible || !enabled) return;
+    running = true;
+    lastTime = 0;
+    resize();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false;
+    cancelAnimationFrame(rafId);
+  }
+
+  function onPointerDown(e) {
+    dragging = true;
+    lastX = e.clientX;
+    movedBy = 0;
+    velocity = 0;
+    hovered = null;
+    canvas.classList.add("is-dragging");
+    canvas.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (!dragging) {
+      hovered = cardAtPointer(e.clientX - rect.left, e.clientY - rect.top);
+      return;
+    }
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    movedBy += Math.abs(dx);
+    // Positive dx drags the deck to the right, so the cards must travel right.
+    const delta = (dx / (width || 1)) * (DRAG_CARDS / deck.length);
+    turn += delta;
+    velocity = (delta / 0.016) * 0.35;
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    canvas.classList.remove("is-dragging");
+    canvas.releasePointerCapture?.(e.pointerId);
+    if (movedBy > 6) return; // that was a spin, not a tap
+
+    const rect = canvas.getBoundingClientRect();
+    const picked = cardAtPointer(e.clientX - rect.left, e.clientY - rect.top);
+    if (picked) onSelect(picked.card);
+  }
+
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointerleave", () => {
+    hovered = null;
+  });
+  canvas.addEventListener("pointercancel", () => {
+    dragging = false;
+    hovered = null;
+    canvas.classList.remove("is-dragging");
+  });
+
+  new ResizeObserver(() => running && resize()).observe(canvas);
+
+  // A pinned/offscreen section shouldn't keep burning frames, so the loop only
+  // runs while the orbit is actually inside the lightbox's scroll viewport.
+  new IntersectionObserver(
+    ([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) start();
+      else stop();
+      onVisibility(visible);
+    },
+    { root, threshold: 0.01 }
+  ).observe(section);
+
+  section.classList.add("is-ready");
+
+  // Several cases share the same artwork, so the ring is ordered by spacing
+  // each piece of media evenly round the loop rather than by DOM order. Plain
+  // round-robin would dump a third copy right next to its second one, so every
+  // item gets a fractional slot of its own lane and the whole set is sorted.
+  function spreadByMedia(list) {
+    const lanes = new Map();
+    list.forEach((item) => {
+      const key = item.source?.getAttribute("src") ?? item.title;
+      if (!lanes.has(key)) lanes.set(key, []);
+      lanes.get(key).push(item);
+    });
+    const all = [...lanes.values()];
+    return all
+      .flatMap((lane, laneIndex) =>
+        lane.map((item, i) => ({ item, at: (i + laneIndex / all.length) / lane.length }))
+      )
+      .sort((a, b) => a.at - b.at)
+      .map((entry) => entry.item);
+  }
+
+  return {
+    start() {
+      enabled = true;
+      start();
+    },
+    stop() {
+      enabled = false;
+      stop();
+    },
+    reset() {
+      const openCard = getActiveCard();
+      const available = items.filter((item) => item.card !== openCard);
+      pool = spreadByMedia(available.length ? available : items);
+      deck = pool;
+      turn = 0;
+      velocity = 0;
+      hovered = null;
+      drift = 1;
+      items.forEach((item) => {
+        item.hover = 0;
+      });
+      captionItem = pool[0];
+      captionEl.textContent = pool[0].title;
+      captionEl.classList.remove("is-swapping");
+      if (running) resize();
+    },
+  };
 }
 
 /* ==========================================================================

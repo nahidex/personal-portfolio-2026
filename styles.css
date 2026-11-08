@@ -839,7 +839,7 @@ ul {
   flex-shrink: 0;
   position: relative;
   /* Width matches left gutter + cards row width matching Image 2 */
-  width: calc(clamp(6.5rem, 9.5vw, 11rem) + clamp(880px, 72vw, 1360px));
+  width: calc(clamp(6.5rem, 9.5vw, 11rem) + clamp(680px, 55vw, 1020px));
   box-sizing: border-box;
 }
 
@@ -1117,185 +1117,123 @@ ul {
 }
 
 .lightbox-content {
+  --gutter: 4rem;
   position: relative;
   z-index: 1;
   background-color: #0a0a0a;
-  padding: 6rem 4rem 8rem;
+  padding: 7rem var(--gutter) 2rem;
   display: flex;
   flex-direction: column;
-  gap: 5rem;
+  gap: 7rem;
 }
 
-.lightbox-content-block {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+/* Case-study prose sits in one narrow centred column; the imagery between it
+   breaks out to the panel edges. */
+.case-block {
+  max-width: 44rem;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.lightbox-content-label {
+.case-label {
+  display: block;
+  margin-bottom: 2rem;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.45);
 }
 
-.lightbox-content-media {
-  width: 100%;
-  height: clamp(280px, 60vh, 640px);
-  border-radius: 12px;
-  background-color: rgba(255, 255, 255, 0.04);
+.case-body {
+  font-size: clamp(1.15rem, 1.9vw, 1.6rem);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.86);
 }
 
-.lightbox-content-media.placeholder-a {
+.case-block--lead {
+  max-width: 50rem;
+}
+
+.case-lead {
+  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.case-tags {
+  margin-top: 2.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.case-tags li {
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  background-color: #01c45e;
+  color: #0a0a0a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.case-figure {
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.04);
+  background-size: cover;
+  background-position: center;
+}
+
+.case-figure--wide {
+  height: clamp(280px, 56vh, 620px);
+}
+
+/* Breaks out of the content gutter to sit flush with the panel edges. */
+.case-figure--full {
+  margin-inline: calc(var(--gutter) * -1);
+  border-radius: 0;
+  height: clamp(320px, 78vh, 880px);
+}
+
+.case-figure-pair {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.case-figure-pair .case-figure {
+  aspect-ratio: 4 / 3;
+}
+
+.case-figure.placeholder-a {
   background-image: linear-gradient(135deg, #2c2c2c 0%, #0a0a0a 100%);
 }
 
-.lightbox-content-media.placeholder-b {
+.case-figure.placeholder-b {
   background-image: linear-gradient(135deg, #1d1d1d 0%, #3a3a3a 100%);
 }
 
-.lightbox-content-media.placeholder-c {
+.case-figure.placeholder-c {
   background-image: linear-gradient(135deg, #262626 0%, #050505 100%);
 }
 
-/* More Cases — a globe-like orbit of the other project thumbnails, same
-   mechanic as emblematica.agency's project-page carousel: cards travel a
-   curved arc (not a flat sideways line) as they swing around, growing and
-   flattening as they pass through center. Only the currently-centered
-   project's name is shown, below the whole orbit (not per-card). */
-.lightbox-more-cases {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2.5rem;
-  margin-top: 1rem;
+.case-figure.placeholder-d {
+  background-image: linear-gradient(135deg, #0f0f0f 0%, #333333 100%);
 }
 
-.more-cases-kicker {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+.case-figure.placeholder-e {
+  background-image: linear-gradient(135deg, #1a1a1a 0%, #2e2e2e 60%, #101010 100%);
 }
 
-.more-cases-wheel {
-  position: relative;
-  width: 100%;
-  height: clamp(360px, 36vw, 480px);
-  perspective: 1700px;
-  perspective-origin: 50% 45%;
-  cursor: grab;
-  touch-action: pan-y;
-  user-select: none;
-}
-
-.more-cases-wheel.is-dragging {
-  cursor: grabbing;
-}
-
-.more-cases-wheel::before,
-.more-cases-wheel::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: clamp(60px, 14vw, 240px);
-  z-index: 5;
-  pointer-events: none;
-}
-
-.more-cases-wheel::before {
-  left: 0;
-  background: linear-gradient(to right, #0a0a0a 8%, transparent);
-}
-
-.more-cases-wheel::after {
-  right: 0;
-  background: linear-gradient(to left, #0a0a0a 8%, transparent);
-}
-
-.more-cases-item {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--cw);
-  height: var(--ih);
-  margin-left: calc(var(--cw) / -2);
-  margin-top: calc(var(--ih) / -2);
-  display: block;
-  background-color: #1a1a1e;
-  cursor: pointer;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  perspective: 600px;
-}
-
-/* Each card's photo is sliced into thin vertical strips, every strip on its
-   own small rotateY/translateZ spoke — bending the flat photo into a barrel/
-   cylinder curve, same as the reference's warped-photo look (their version
-   is a WebGL sphere-mapped quad; this fakes the same curvature in CSS by
-   subdividing the image instead of warping a single flat plane). */
-.more-cases-item-strips {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-}
-
-.more-cases-item-strip {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  background-repeat: no-repeat;
-  backface-visibility: hidden;
-}
-
-.more-cases-name {
-  font-family:
-    "Plus Jakarta Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  font-size: clamp(1rem, 1.6vw, 1.3rem);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #ffffff;
-  text-align: center;
-  min-height: 1.6em;
-}
-
-@media (max-width: 640px) {
-  .more-cases-wheel {
-    height: 280px;
-  }
-}
-
-/* Matches the reference's own `.orbit__hint` — a quiet uppercase label that
-   fades away the first time someone actually drags, since by then they
-   already know. */
-.more-cases-hint {
-  margin: 0;
-  font-family:
-    "Plus Jakarta Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(218, 218, 218, 0.7);
-  text-align: center;
-  transition: opacity 0.4s ease;
-}
-
-.more-cases-hint.is-hidden {
-  opacity: 0;
+.case-figure.placeholder-f {
+  background-image: linear-gradient(135deg, #202020 0%, #080808 100%);
 }
 
 .lightbox-title-bar {
@@ -1380,6 +1318,156 @@ ul {
   border-color: rgba(255, 255, 255, 0.55);
 }
 
+/* ==========================================================================
+   More Cases — a slowly spinning cylinder of curved project cards rendered
+   on a WebGL canvas, sitting at the foot of the case-study lightbox. The
+   accessible list underneath is the no-WebGL fallback and is hidden only
+   once the renderer has actually started.
+   ========================================================================== */
+/* Case studies that only exist for the orbit — never laid out, but the media
+   still has to download so it can be uploaded as a texture. */
+.project-archive {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.more-cases {
+  --card-width: clamp(320px, 38vw, 620px);
+  position: relative;
+  z-index: 1;
+  background-color: #0a0a0a;
+  padding: 3.5rem 0 4.5rem;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.more-cases-uptitle {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.more-cases-stage {
+  position: relative;
+  /* Capped against viewport height as well as width so the canvas can keep its
+     5:2 ratio on short screens — letting the ratio drift would change the card
+     count and flatten the fish-eye. */
+  max-width: min(1500px, 125vh);
+  margin: 2.5rem auto 0;
+}
+
+/* Side gradients hide the cards swinging round the back of the cylinder */
+.more-cases-stage::before,
+.more-cases-stage::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(70px, 16vw, 300px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.more-cases-stage::before {
+  left: 0;
+  background-image: linear-gradient(to right, #0a0a0a 8%, rgba(10, 10, 10, 0));
+}
+
+.more-cases-stage::after {
+  right: 0;
+  background-image: linear-gradient(to left, #0a0a0a 8%, rgba(10, 10, 10, 0));
+}
+
+.more-cases-gl {
+  display: none;
+  width: 100%;
+  /* Locked ratio: the card count and the fish-eye both follow the canvas's
+     aspect, so letting it drift would change the look on every screen size. */
+  aspect-ratio: 5 / 2;
+  min-height: 200px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.more-cases.is-ready .more-cases-gl {
+  display: block;
+}
+
+.more-cases-gl.is-dragging {
+  cursor: grabbing;
+}
+
+.more-cases-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  padding: 0 4rem;
+  list-style: none;
+}
+
+.more-cases.is-ready .more-cases-list {
+  /* Kept in the DOM for keyboard and screen-reader users only */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.more-cases-list img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.more-cases-list a {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.more-cases-caption {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #ffffff;
+  min-height: 1.3em;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.more-cases-caption.is-swapping {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (max-width: 640px) {
+  .more-cases {
+    --card-width: 74vw;
+    padding-bottom: 4.5rem;
+  }
+
+  .more-cases-caption {
+    font-size: 14px;
+  }
+}
+
 .project-lightbox.is-active .lightbox-close {
   pointer-events: auto;
 }
@@ -1390,8 +1478,17 @@ ul {
   }
 
   .lightbox-content {
-    padding: 4rem 1.5rem 6rem;
-    gap: 3.5rem;
+    --gutter: 1.5rem;
+    padding: 4rem var(--gutter) 1rem;
+    gap: 4rem;
+  }
+
+  .case-figure-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .case-figure--full {
+    height: clamp(260px, 60vh, 520px);
   }
 
   .lightbox-close {
