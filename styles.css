@@ -1241,6 +1241,154 @@ ul {
   border-color: rgba(255, 255, 255, 0.55);
 }
 
+/* ==========================================================================
+   More Cases — a slowly spinning cylinder of curved project cards rendered
+   on a WebGL canvas, sitting at the foot of the case-study lightbox. The
+   accessible list underneath is the no-WebGL fallback and is hidden only
+   once the renderer has actually started.
+   ========================================================================== */
+/* Case studies that only exist for the orbit — never laid out, but the media
+   still has to download so it can be uploaded as a texture. */
+.project-archive {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.more-cases {
+  --card-width: clamp(320px, 38vw, 620px);
+  position: relative;
+  z-index: 1;
+  background-color: #0a0a0a;
+  padding: 3.5rem 0 4.5rem;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.more-cases-uptitle {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.more-cases-stage {
+  position: relative;
+  /* Capped so very wide screens get a controlled carousel instead of an
+     ever-flatter arc with ever more repeated cases in it. */
+  max-width: 1500px;
+  margin: 2.5rem auto 0;
+}
+
+/* Side gradients hide the cards swinging round the back of the cylinder */
+.more-cases-stage::before,
+.more-cases-stage::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(70px, 16vw, 300px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.more-cases-stage::before {
+  left: 0;
+  background-image: linear-gradient(to right, #0a0a0a 8%, rgba(10, 10, 10, 0));
+}
+
+.more-cases-stage::after {
+  right: 0;
+  background-image: linear-gradient(to left, #0a0a0a 8%, rgba(10, 10, 10, 0));
+}
+
+.more-cases-gl {
+  display: none;
+  width: 100%;
+  /* Locked ratio: the card count and the fish-eye both follow the canvas's
+     aspect, so letting it drift would change the look on every screen size.
+     The caps only bite on unusually short or narrow viewports. */
+  aspect-ratio: 5 / 2;
+  max-height: 50vh;
+  min-height: 230px;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.more-cases.is-ready .more-cases-gl {
+  display: block;
+}
+
+.more-cases-gl.is-dragging {
+  cursor: grabbing;
+}
+
+.more-cases-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  padding: 0 4rem;
+  list-style: none;
+}
+
+.more-cases.is-ready .more-cases-list {
+  /* Kept in the DOM for keyboard and screen-reader users only */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.more-cases-list img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.more-cases-list a {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.more-cases-caption {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #ffffff;
+  min-height: 1.3em;
+  transition: opacity 0.25s ease;
+}
+
+.more-cases-caption.is-swapping {
+  opacity: 0;
+}
+
+@media (max-width: 640px) {
+  .more-cases {
+    --card-width: 74vw;
+    padding-bottom: 4.5rem;
+  }
+
+  .more-cases-caption {
+    font-size: 14px;
+  }
+}
+
 .project-lightbox.is-active .lightbox-close {
   pointer-events: auto;
 }

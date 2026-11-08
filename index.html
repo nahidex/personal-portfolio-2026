@@ -1066,6 +1066,83 @@
       </div>
     </footer>
 
+    <!-- Extra case studies that only ever surface through the "More cases"
+         orbit — same markup as a showcase slide so they open the same way. -->
+    <div class="project-archive" id="projectArchive" aria-hidden="true">
+      <article class="project-slide">
+        <span class="project-client">Northwind Coffee</span>
+        <h3 class="project-heading">Slow-Roast Coffee Brand System</h3>
+        <span class="project-year">2023</span>
+        <a href="#contact" class="project-media-card">
+          <img src="resources/projects/SA.png" alt="Northwind Coffee" />
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Harbor &amp; Co.</span>
+        <h3 class="project-heading">Hospitality Booking Experience</h3>
+        <span class="project-year">2021</span>
+        <a href="#contact" class="project-media-card">
+          <video src="resources/projects/florist.mp4" muted playsinline preload="auto"></video>
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Lumen Studio</span>
+        <h3 class="project-heading">An Architecture Portfolio, Rebuilt</h3>
+        <span class="project-year">2023</span>
+        <a href="#contact" class="project-media-card">
+          <img src="resources/projects/AE1.png" alt="Lumen Studio" />
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Atlas Freight</span>
+        <h3 class="project-heading">Logistics Dashboard Redesign</h3>
+        <span class="project-year">2022</span>
+        <a href="#contact" class="project-media-card">
+          <video src="resources/projects/urotuning.mp4" muted playsinline preload="auto"></video>
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Verda Botanics</span>
+        <h3 class="project-heading">Skincare Packaging &amp; Commerce</h3>
+        <span class="project-year">2022</span>
+        <a href="#contact" class="project-media-card">
+          <img src="resources/projects/KBW.png" alt="Verda Botanics" />
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Söl Eyewear</span>
+        <h3 class="project-heading">A Direct-to-Consumer Launch</h3>
+        <span class="project-year">2021</span>
+        <a href="#contact" class="project-media-card">
+          <video src="resources/projects/wllw.mp4" muted playsinline preload="auto"></video>
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Pendleton Press</span>
+        <h3 class="project-heading">Independent Publisher Storefront</h3>
+        <span class="project-year">2020</span>
+        <a href="#contact" class="project-media-card">
+          <video src="resources/projects/work-video10.mp4" muted playsinline preload="auto"></video>
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Meridian Labs</span>
+        <h3 class="project-heading">Research Platform Design System</h3>
+        <span class="project-year">2020</span>
+        <a href="#contact" class="project-media-card">
+          <img src="resources/projects/SA.png" alt="Meridian Labs" />
+        </a>
+      </article>
+      <article class="project-slide">
+        <span class="project-client">Kasten Moto</span>
+        <h3 class="project-heading">Heritage Motorcycle Campaign</h3>
+        <span class="project-year">2019</span>
+        <a href="#contact" class="project-media-card">
+          <video src="resources/projects/urotuning.mp4" muted playsinline preload="auto"></video>
+        </a>
+      </article>
+    </div>
+
     <!-- Project Lightbox (expands from a horizontal line into a full case-study page) -->
     <div class="project-lightbox" id="projectLightbox" aria-hidden="true">
       <div class="lightbox-panel" id="lightboxPanel">
@@ -1092,6 +1169,16 @@
               <div class="lightbox-content-media placeholder-c"></div>
             </div>
           </div>
+
+          <!-- More Cases — WebGL cylinder of curved project cards -->
+          <section class="more-cases" id="moreCases" aria-label="More cases">
+            <span class="more-cases-uptitle">More cases</span>
+            <div class="more-cases-stage" id="moreCasesStage">
+              <canvas class="more-cases-gl" id="moreCasesCanvas" aria-hidden="true"></canvas>
+              <ul class="more-cases-list" id="moreCasesList"></ul>
+            </div>
+            <p class="more-cases-caption" id="moreCasesCaption"></p>
+          </section>
         </div>
       </div>
 
