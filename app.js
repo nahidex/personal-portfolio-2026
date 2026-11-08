@@ -1500,7 +1500,7 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
   let running = false;
   let visible = false;
   let enabled = false;
-  let captionIndex = -1;
+  let captionItem = null;
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1542,13 +1542,15 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
   }
 
   function syncCaption() {
-    const index = frontIndex();
-    if (index === captionIndex) return;
-    captionIndex = index;
+    // Hovering takes the caption over from whichever card happens to be in
+    // front, so pointing at a card always names that card.
+    const next = hovered ?? deck[frontIndex()];
+    if (next === captionItem) return;
+    captionItem = next;
     captionEl.classList.add("is-swapping");
     clearTimeout(syncCaption.timer);
     syncCaption.timer = setTimeout(() => {
-      captionEl.textContent = deck[index].title;
+      captionEl.textContent = next.title;
       captionEl.classList.remove("is-swapping");
     }, 160);
   }
@@ -1763,8 +1765,9 @@ function initMoreCasesOrbit({ cards, root, onSelect, getActiveCard, onVisibility
       items.forEach((item) => {
         item.hover = 0;
       });
-      captionIndex = -1;
+      captionItem = pool[0];
       captionEl.textContent = pool[0].title;
+      captionEl.classList.remove("is-swapping");
       if (running) resize();
     },
   };
