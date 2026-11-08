@@ -1273,6 +1273,31 @@ ul {
   }
 }
 
+/* Matches the reference's own `.orbit__hint` — a quiet uppercase label that
+   fades away the first time someone actually drags, since by then they
+   already know. */
+.more-cases-hint {
+  margin: 0;
+  font-family:
+    "Plus Jakarta Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(218, 218, 218, 0.7);
+  text-align: center;
+  transition: opacity 0.4s ease;
+}
+
+.more-cases-hint.is-hidden {
+  opacity: 0;
+}
+
 .lightbox-title-bar {
   /* Sits in normal flow right after the hero, close to the top of that
      section, then sticks to the top of the scroll container once scrolled

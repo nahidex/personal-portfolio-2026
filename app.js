@@ -1142,12 +1142,15 @@ function initProjectLightbox() {
   // here too, since we only have a handful of other projects.
   const moreCasesWheel = document.getElementById("moreCasesWheel");
   const moreCasesName = document.getElementById("moreCasesName");
+  const moreCasesHint = document.getElementById("moreCasesHint");
   let ringItems = []; // { el, card } one per repeated ring slot
   let ringN = 0;
   let ringStep = 0;
   let ringRadius = 0;
   let ringRotation = 0;
   let ringVelocity = 0;
+  let hoveredRingItem = null;
+  let hoverScaleT = 0; // eased 0..1, smoothly drives the subtle hover grow
   let ringDragging = false;
   let ringMoved = 0;
   let ringHover = false;
@@ -1204,7 +1207,12 @@ function initProjectLightbox() {
       // instead of a staggered staircase.
       const y = (1 - c) * ringRadius * 0.12;
       const tilt = -s * 4;
-      const sc = 0.82 + 0.18 * Math.max(c, 0);
+      let sc = 0.82 + 0.18 * Math.max(c, 0);
+      // A subtle grow on hover/focus — eased in app.js's own tick below
+      // rather than a CSS transition, since transform is rewritten every
+      // frame for the orbit motion itself and a CSS transition would just
+      // fight that constant update.
+      if (item === hoveredRingItem) sc *= 1 + 0.08 * hoverScaleT;
       el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(2)}deg) rotateZ(${tilt.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
       el.style.opacity = String(gsap.utils.clamp(0, 1, (c + 0.15) * 3.5));
       el.style.pointerEvents = c > 0.25 ? "auto" : "none";
@@ -1224,6 +1232,7 @@ function initProjectLightbox() {
     const now = performance.now();
     const dt = Math.min(40, ringLastTickTime ? now - ringLastTickTime : 16);
     ringLastTickTime = now;
+    hoverScaleT += ((hoveredRingItem ? 1 : 0) - hoverScaleT) * Math.min(1, dt * 0.012);
     if (!ringDragging) {
       const target = ringHover ? 0 : AUTO_DEG_PER_MS;
       ringVelocity += (target - ringVelocity) * Math.min(1, dt * 0.004);
@@ -1311,12 +1320,19 @@ function initProjectLightbox() {
           ? `url("${source.src}")`
           : PLACEHOLDER_GRADIENTS[projectIndex % PLACEHOLDER_GRADIENTS.length];
       const strips = buildCardStrips(el, bgImage);
+      const item = { el, strips, card: otherCard, name };
       el.addEventListener("click", () => {
         if (ringMoved > 6) return; // a drag just ended here, not a tap
         switchToCard(otherCard);
       });
+      el.addEventListener("pointerenter", () => {
+        hoveredRingItem = item;
+      });
+      el.addEventListener("pointerleave", () => {
+        if (hoveredRingItem === item) hoveredRingItem = null;
+      });
       moreCasesWheel.appendChild(el);
-      return { el, strips, card: otherCard, name };
+      return item;
     });
 
     const cw = Math.round(gsap.utils.clamp(200, 320, moreCasesWheel.clientWidth * 0.26));
@@ -1342,6 +1358,7 @@ function initProjectLightbox() {
       ringLastX = e.clientX;
       ringVelocity = 0;
       moreCasesWheel.classList.add("is-dragging");
+      if (moreCasesHint) moreCasesHint.classList.add("is-hidden");
       // Deliberately NOT using setPointerCapture here — capturing on the
       // wheel also redirects each card's own `click` event to the wheel
       // itself, so a plain tap on a card would never reach its listener.
